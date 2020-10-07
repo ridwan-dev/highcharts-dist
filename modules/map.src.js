@@ -1,5 +1,5 @@
 /**
- * @license Highmaps JS v8.2.0 (2020-08-20)
+ * @license Highmaps JS v8.2.0 (2020-10-07)
  *
  * Highmaps as a plugin for Highcharts or Highstock.
  *
@@ -193,7 +193,7 @@
 
         return MapAxis;
     });
-    _registerModule(_modules, 'Mixins/ColorSeries.js', [_modules['Core/Globals.js']], function (H) {
+    _registerModule(_modules, 'Mixins/ColorSeries.js', [], function () {
         /* *
          *
          *  (c) 2010-2020 Torstein Honsi
@@ -209,18 +209,18 @@
          * @private
          * @mixin Highcharts.colorPointMixin
          */
-        H.colorPointMixin = {
-            /* eslint-disable valid-jsdoc */
-            /**
-             * Set the visibility of a single point
-             * @private
-             * @function Highcharts.colorPointMixin.setVisible
-             * @param {boolean} visible
-             * @return {void}
-             */
-            setVisible: function (vis) {
-                var point = this,
-                    method = vis ? 'show' : 'hide';
+        var colorPointMixin = {
+                /* eslint-disable valid-jsdoc */
+                /**
+                 * Set the visibility of a single point
+                 * @private
+                 * @function Highcharts.colorPointMixin.setVisible
+                 * @param {boolean} visible
+                 * @return {void}
+                 */
+                setVisible: function (vis) {
+                    var point = this,
+            method = vis ? 'show' : 'hide';
                 point.visible = point.options.visible = Boolean(vis);
                 // Show and hide associated elements
                 ['graphic', 'dataLabel'].forEach(function (key) {
@@ -236,23 +236,25 @@
          * @private
          * @mixin Highcharts.colorSeriesMixin
          */
-        H.colorSeriesMixin = {
-            optionalAxis: 'colorAxis',
-            colorAxis: 0,
-            /* eslint-disable valid-jsdoc */
-            /**
-             * In choropleth maps, the color is a result of the value, so this needs
-             * translation too
-             * @private
-             * @function Highcharts.colorSeriesMixin.translateColors
-             * @return {void}
-             */
-            translateColors: function () {
-                var series = this,
-                    points = this.data.length ? this.data : this.points,
-                    nullColor = this.options.nullColor,
-                    colorAxis = this.colorAxis,
-                    colorKey = this.colorKey;
+        var colorSeriesMixin = {
+                optionalAxis: 'colorAxis',
+                colorAxis: 0,
+                /* eslint-disable valid-jsdoc */
+                /**
+                 * In choropleth maps,
+            the color is a result of the value,
+            so this needs
+                 * translation too
+                 * @private
+                 * @function Highcharts.colorSeriesMixin.translateColors
+                 * @return {void}
+                 */
+                translateColors: function () {
+                    var series = this,
+            points = this.data.length ? this.data : this.points,
+            nullColor = this.options.nullColor,
+            colorAxis = this.colorAxis,
+            colorKey = this.colorKey;
                 points.forEach(function (point) {
                     var value = point.getNestedProperty(colorKey),
                         color;
@@ -272,9 +274,14 @@
             }
             /* eslint-enable valid-jsdoc */
         };
+        var exports = {
+                colorPointMixin: colorPointMixin,
+                colorSeriesMixin: colorSeriesMixin
+            };
 
+        return exports;
     });
-    _registerModule(_modules, 'Core/Axis/ColorAxis.js', [_modules['Core/Axis/Axis.js'], _modules['Core/Chart/Chart.js'], _modules['Core/Color.js'], _modules['Core/Globals.js'], _modules['Core/Legend.js'], _modules['Mixins/LegendSymbol.js'], _modules['Core/Series/Point.js'], _modules['Core/Utilities.js']], function (Axis, Chart, Color, H, Legend, LegendSymbolMixin, Point, U) {
+    _registerModule(_modules, 'Core/Axis/ColorAxis.js', [_modules['Core/Axis/Axis.js'], _modules['Core/Chart/Chart.js'], _modules['Core/Color/Color.js'], _modules['Mixins/ColorSeries.js'], _modules['Core/Animation/Fx.js'], _modules['Core/Globals.js'], _modules['Core/Legend.js'], _modules['Mixins/LegendSymbol.js'], _modules['Series/LineSeries.js'], _modules['Core/Series/Point.js'], _modules['Core/Utilities.js']], function (Axis, Chart, Color, ColorSeriesModule, Fx, H, Legend, LegendSymbolMixin, LineSeries, Point, U) {
         /* *
          *
          *  (c) 2010-2020 Torstein Honsi
@@ -301,11 +308,12 @@
             };
         })();
         var color = Color.parse;
+        var colorPointMixin = ColorSeriesModule.colorPointMixin,
+            colorSeriesMixin = ColorSeriesModule.colorSeriesMixin;
         var noop = H.noop;
         var addEvent = U.addEvent,
             erase = U.erase,
             extend = U.extend,
-            Fx = U.Fx,
             isNumber = U.isNumber,
             merge = U.merge,
             pick = U.pick,
@@ -316,10 +324,7 @@
          * @typedef {"linear"|"logarithmic"} Highcharts.ColorAxisTypeValue
          */
         ''; // detach doclet above
-        var Series = H.Series,
-            colorPointMixin = H.colorPointMixin,
-            colorSeriesMixin = H.colorSeriesMixin;
-        extend(Series.prototype, colorSeriesMixin);
+        extend(LineSeries.prototype, colorSeriesMixin);
         extend(Point.prototype, colorPointMixin);
         Chart.prototype.collectionsWithUpdate.push('colorAxis');
         Chart.prototype.collectionsWithInit.colorAxis = [Chart.prototype.addColorAxis];
@@ -728,7 +733,7 @@
                         cSeries.maxColorValue = cSeries[colorKey + 'Max'];
                     }
                     else {
-                        var cExtremes = Series.prototype.getExtremes.call(cSeries,
+                        var cExtremes = LineSeries.prototype.getExtremes.call(cSeries,
                             colorValArray);
                         cSeries.minColorValue = cExtremes.dataMin;
                         cSeries.maxColorValue = cExtremes.dataMax;
@@ -740,7 +745,7 @@
                             Math.max(this.dataMax, cSeries.maxColorValue);
                     }
                     if (!calculatedExtremes) {
-                        Series.prototype.applyExtremes.call(cSeries);
+                        LineSeries.prototype.applyExtremes.call(cSeries);
                     }
                 }
             };
@@ -1413,7 +1418,7 @@
             }
         });
         // Add colorAxis to series axisTypes
-        addEvent(Series, 'bindAxes', function () {
+        addEvent(LineSeries, 'bindAxes', function () {
             var axisTypes = this.axisTypes;
             if (!axisTypes) {
                 this.axisTypes = ['colorAxis'];
@@ -1479,7 +1484,7 @@
             }
         });
         // Calculate and set colors for points
-        addEvent(Series, 'afterTranslate', function () {
+        addEvent(LineSeries, 'afterTranslate', function () {
             if (this.chart.colorAxis &&
                 this.chart.colorAxis.length ||
                 this.colorAttribs) {
@@ -1508,21 +1513,21 @@
          * @private
          * @mixin Highcharts.colorMapPointMixin
          */
-        H.colorMapPointMixin = {
-            dataLabelOnNull: true,
-            /* eslint-disable valid-jsdoc */
-            /**
-             * Color points have a value option that determines whether or not it is
-             * a null point
-             * @private
-             * @function Highcharts.colorMapPointMixin.isValid
-             * @return {boolean}
-             */
-            isValid: function () {
-                // undefined is allowed
-                return (this.value !== null &&
-                    this.value !== Infinity &&
-                    this.value !== -Infinity);
+        var colorMapPointMixin = {
+                dataLabelOnNull: true,
+                /* eslint-disable valid-jsdoc */
+                /**
+                 * Color points have a value option that determines whether or not it is
+                 * a null point
+                 * @private
+                 * @function Highcharts.colorMapPointMixin.isValid
+                 * @return {boolean}
+                 */
+                isValid: function () {
+                    // undefined is allowed
+                    return (this.value !== null &&
+                        this.value !== Infinity &&
+                        this.value !== -Infinity);
             },
             /**
              * @private
@@ -1544,31 +1549,36 @@
          * @private
          * @mixin Highcharts.colorMapSeriesMixin
          */
-        H.colorMapSeriesMixin = {
-            pointArrayMap: ['value'],
-            axisTypes: ['xAxis', 'yAxis', 'colorAxis'],
-            trackerGroups: ['group', 'markerGroup', 'dataLabelsGroup'],
-            getSymbol: noop,
-            parallelArrays: ['x', 'y', 'value'],
-            colorKey: 'value',
-            pointAttribs: seriesTypes.column.prototype.pointAttribs,
-            /* eslint-disable valid-jsdoc */
-            /**
-             * Get the color attibutes to apply on the graphic
-             * @private
-             * @function Highcharts.colorMapSeriesMixin.colorAttribs
-             * @param {Highcharts.Point} point
-             * @return {Highcharts.SVGAttributes}
-             */
-            colorAttribs: function (point) {
-                var ret = {};
+        var colorMapSeriesMixin = {
+                pointArrayMap: ['value'],
+                axisTypes: ['xAxis', 'yAxis', 'colorAxis'],
+                trackerGroups: ['group', 'markerGroup', 'dataLabelsGroup'],
+                getSymbol: noop,
+                parallelArrays: ['x', 'y', 'value'],
+                colorKey: 'value',
+                pointAttribs: seriesTypes.column.prototype.pointAttribs,
+                /* eslint-disable valid-jsdoc */
+                /**
+                 * Get the color attibutes to apply on the graphic
+                 * @private
+                 * @function Highcharts.colorMapSeriesMixin.colorAttribs
+                 * @param {Highcharts.Point} point
+                 * @return {Highcharts.SVGAttributes}
+                 */
+                colorAttribs: function (point) {
+                    var ret = {};
                 if (defined(point.color)) {
                     ret[this.colorProp || 'fill'] = point.color;
                 }
                 return ret;
             }
         };
+        var exports = {
+                colorMapPointMixin: colorMapPointMixin,
+                colorMapSeriesMixin: colorMapSeriesMixin
+            };
 
+        return exports;
     });
     _registerModule(_modules, 'Maps/MapNavigation.js', [_modules['Core/Chart/Chart.js'], _modules['Core/Globals.js'], _modules['Core/Utilities.js']], function (Chart, H, U) {
         /* *
@@ -1965,7 +1975,7 @@
         });
 
     });
-    _registerModule(_modules, 'Series/MapSeries.js', [_modules['Core/Globals.js'], _modules['Mixins/LegendSymbol.js'], _modules['Core/Series/Point.js'], _modules['Core/Renderer/SVG/SVGRenderer.js'], _modules['Core/Utilities.js']], function (H, LegendSymbolMixin, Point, SVGRenderer, U) {
+    _registerModule(_modules, 'Maps/Map.js', [_modules['Core/Chart/Chart.js'], _modules['Core/Globals.js'], _modules['Core/Options.js'], _modules['Core/Renderer/SVG/SVGRenderer.js'], _modules['Core/Utilities.js']], function (Chart, H, O, SVGRenderer, U) {
         /* *
          *
          *  (c) 2010-2020 Torstein Honsi
@@ -1975,6 +1985,438 @@
          *  !!!!!!! SOURCE GETS TRANSPILED BY TYPESCRIPT. EDIT TS FILE ONLY. !!!!!!!
          *
          * */
+        var defaultOptions = O.defaultOptions;
+        var extend = U.extend,
+            getOptions = U.getOptions,
+            merge = U.merge,
+            pick = U.pick;
+        var Renderer = H.Renderer,
+            VMLRenderer = H.VMLRenderer;
+        // Add language
+        extend(defaultOptions.lang, {
+            zoomIn: 'Zoom in',
+            zoomOut: 'Zoom out'
+        });
+        // Set the default map navigation options
+        /**
+         * @product      highmaps
+         * @optionparent mapNavigation
+         */
+        defaultOptions.mapNavigation = {
+            /**
+             * General options for the map navigation buttons. Individual options
+             * can be given from the [mapNavigation.buttons](#mapNavigation.buttons)
+             * option set.
+             *
+             * @sample {highmaps} maps/mapnavigation/button-theme/
+             *         Theming the navigation buttons
+             */
+            buttonOptions: {
+                /**
+                 * What box to align the buttons to. Possible values are `plotBox`
+                 * and `spacingBox`.
+                 *
+                 * @type {Highcharts.ButtonRelativeToValue}
+                 */
+                alignTo: 'plotBox',
+                /**
+                 * The alignment of the navigation buttons.
+                 *
+                 * @type {Highcharts.AlignValue}
+                 */
+                align: 'left',
+                /**
+                 * The vertical alignment of the buttons. Individual alignment can
+                 * be adjusted by each button's `y` offset.
+                 *
+                 * @type {Highcharts.VerticalAlignValue}
+                 */
+                verticalAlign: 'top',
+                /**
+                 * The X offset of the buttons relative to its `align` setting.
+                 */
+                x: 0,
+                /**
+                 * The width of the map navigation buttons.
+                 */
+                width: 18,
+                /**
+                 * The pixel height of the map navigation buttons.
+                 */
+                height: 18,
+                /**
+                 * Padding for the navigation buttons.
+                 *
+                 * @since 5.0.0
+                 */
+                padding: 5,
+                /**
+                 * Text styles for the map navigation buttons.
+                 *
+                 * @type    {Highcharts.CSSObject}
+                 * @default {"fontSize": "15px", "fontWeight": "bold"}
+                 */
+                style: {
+                    /** @ignore */
+                    fontSize: '15px',
+                    /** @ignore */
+                    fontWeight: 'bold'
+                },
+                /**
+                 * A configuration object for the button theme. The object accepts
+                 * SVG properties like `stroke-width`, `stroke` and `fill`. Tri-state
+                 * button styles are supported by the `states.hover` and `states.select`
+                 * objects.
+                 *
+                 * @sample {highmaps} maps/mapnavigation/button-theme/
+                 *         Themed navigation buttons
+                 *
+                 * @type    {Highcharts.SVGAttributes}
+                 * @default {"stroke-width": 1, "text-align": "center"}
+                 */
+                theme: {
+                    /** @ignore */
+                    'stroke-width': 1,
+                    /** @ignore */
+                    'text-align': 'center'
+                }
+            },
+            /**
+             * The individual buttons for the map navigation. This usually includes
+             * the zoom in and zoom out buttons. Properties for each button is
+             * inherited from
+             * [mapNavigation.buttonOptions](#mapNavigation.buttonOptions), while
+             * individual options can be overridden. But default, the `onclick`, `text`
+             * and `y` options are individual.
+             */
+            buttons: {
+                /**
+                 * Options for the zoom in button. Properties for the zoom in and zoom
+                 * out buttons are inherited from
+                 * [mapNavigation.buttonOptions](#mapNavigation.buttonOptions), while
+                 * individual options can be overridden. By default, the `onclick`,
+                 * `text` and `y` options are individual.
+                 *
+                 * @extends mapNavigation.buttonOptions
+                 */
+                zoomIn: {
+                    // eslint-disable-next-line valid-jsdoc
+                    /**
+                     * Click handler for the button.
+                     *
+                     * @type    {Function}
+                     * @default function () { this.mapZoom(0.5); }
+                     */
+                    onclick: function () {
+                        this.mapZoom(0.5);
+                    },
+                    /**
+                     * The text for the button. The tooltip (title) is a language option
+                     * given by [lang.zoomIn](#lang.zoomIn).
+                     */
+                    text: '+',
+                    /**
+                     * The position of the zoomIn button relative to the vertical
+                     * alignment.
+                     */
+                    y: 0
+                },
+                /**
+                 * Options for the zoom out button. Properties for the zoom in and
+                 * zoom out buttons are inherited from
+                 * [mapNavigation.buttonOptions](#mapNavigation.buttonOptions), while
+                 * individual options can be overridden. By default, the `onclick`,
+                 * `text` and `y` options are individual.
+                 *
+                 * @extends mapNavigation.buttonOptions
+                 */
+                zoomOut: {
+                    // eslint-disable-next-line valid-jsdoc
+                    /**
+                     * Click handler for the button.
+                     *
+                     * @type    {Function}
+                     * @default function () { this.mapZoom(2); }
+                     */
+                    onclick: function () {
+                        this.mapZoom(2);
+                    },
+                    /**
+                     * The text for the button. The tooltip (title) is a language option
+                     * given by [lang.zoomOut](#lang.zoomIn).
+                     */
+                    text: '-',
+                    /**
+                     * The position of the zoomOut button relative to the vertical
+                     * alignment.
+                     */
+                    y: 28
+                }
+            },
+            /**
+             * Whether to enable navigation buttons. By default it inherits the
+             * [enabled](#mapNavigation.enabled) setting.
+             *
+             * @type      {boolean}
+             * @apioption mapNavigation.enableButtons
+             */
+            /**
+             * Whether to enable map navigation. The default is not to enable
+             * navigation, as many choropleth maps are simple and don't need it.
+             * Additionally, when touch zoom and mousewheel zoom is enabled, it breaks
+             * the default behaviour of these interactions in the website, and the
+             * implementer should be aware of this.
+             *
+             * Individual interactions can be enabled separately, namely buttons,
+             * multitouch zoom, double click zoom, double click zoom to element and
+             * mousewheel zoom.
+             *
+             * @type      {boolean}
+             * @default   false
+             * @apioption mapNavigation.enabled
+             */
+            /**
+             * Enables zooming in on an area on double clicking in the map. By default
+             * it inherits the [enabled](#mapNavigation.enabled) setting.
+             *
+             * @type      {boolean}
+             * @apioption mapNavigation.enableDoubleClickZoom
+             */
+            /**
+             * Whether to zoom in on an area when that area is double clicked.
+             *
+             * @sample {highmaps} maps/mapnavigation/doubleclickzoomto/
+             *         Enable double click zoom to
+             *
+             * @type      {boolean}
+             * @default   false
+             * @apioption mapNavigation.enableDoubleClickZoomTo
+             */
+            /**
+             * Enables zooming by mouse wheel. By default it inherits the [enabled](
+             * #mapNavigation.enabled) setting.
+             *
+             * @type      {boolean}
+             * @apioption mapNavigation.enableMouseWheelZoom
+             */
+            /**
+             * Whether to enable multitouch zooming. Note that if the chart covers the
+             * viewport, this prevents the user from using multitouch and touchdrag on
+             * the web page, so you should make sure the user is not trapped inside the
+             * chart. By default it inherits the [enabled](#mapNavigation.enabled)
+             * setting.
+             *
+             * @type      {boolean}
+             * @apioption mapNavigation.enableTouchZoom
+             */
+            /**
+             * Sensitivity of mouse wheel or trackpad scrolling. 1 is no sensitivity,
+             * while with 2, one mousewheel delta will zoom in 50%.
+             *
+             * @since 4.2.4
+             */
+            mouseWheelSensitivity: 1.1
+            // enabled: false,
+            // enableButtons: null, // inherit from enabled
+            // enableTouchZoom: null, // inherit from enabled
+            // enableDoubleClickZoom: null, // inherit from enabled
+            // enableDoubleClickZoomTo: false
+            // enableMouseWheelZoom: null, // inherit from enabled
+        };
+        /* eslint-disable valid-jsdoc */
+        /**
+         * Utility for reading SVG paths directly.
+         *
+         * @requires modules/map
+         *
+         * @function Highcharts.splitPath
+         *
+         * @param {string|Array<string|number>} path
+         *
+         * @return {Highcharts.SVGPathArray}
+         */
+        var splitPath = H.splitPath = function (path) {
+                var arr;
+            if (typeof path === 'string') {
+                path = path
+                    // Move letters apart
+                    .replace(/([A-Za-z])/g, ' $1 ')
+                    // Trim
+                    .replace(/^\s*/, '').replace(/\s*$/, '');
+                // Split on spaces and commas. The semicolon is bogus, designed to
+                // circumvent string replacement in the pre-v7 assembler that built
+                // specific styled mode files.
+                var split = path.split(/[ ,;]+/);
+                arr = split.map(function (item) {
+                    if (!/[A-za-z]/.test(item)) {
+                        return parseFloat(item);
+                    }
+                    return item;
+                });
+            }
+            else {
+                arr = path;
+            }
+            return SVGRenderer.prototype.pathToSegments(arr);
+        };
+        /**
+         * Contains all loaded map data for Highmaps.
+         *
+         * @requires modules/map
+         *
+         * @name Highcharts.maps
+         * @type {Record<string,*>}
+         */
+        H.maps = {};
+        /**
+         * Create symbols for the zoom buttons
+         * @private
+         */
+        function selectiveRoundedRect(x, y, w, h, rTopLeft, rTopRight, rBottomRight, rBottomLeft) {
+            return [
+                ['M', x + rTopLeft, y],
+                // top side
+                ['L', x + w - rTopRight, y],
+                // top right corner
+                ['C', x + w - rTopRight / 2, y, x + w, y + rTopRight / 2, x + w, y + rTopRight],
+                // right side
+                ['L', x + w, y + h - rBottomRight],
+                // bottom right corner
+                ['C', x + w, y + h - rBottomRight / 2, x + w - rBottomRight / 2, y + h, x + w - rBottomRight, y + h],
+                // bottom side
+                ['L', x + rBottomLeft, y + h],
+                // bottom left corner
+                ['C', x + rBottomLeft / 2, y + h, x, y + h - rBottomLeft / 2, x, y + h - rBottomLeft],
+                // left side
+                ['L', x, y + rTopLeft],
+                // top left corner
+                ['C', x, y + rTopLeft / 2, x + rTopLeft / 2, y, x + rTopLeft, y],
+                ['Z']
+            ];
+        }
+        SVGRenderer.prototype.symbols.topbutton = function (x, y, w, h, options) {
+            var r = (options && options.r) || 0;
+            return selectiveRoundedRect(x - 1, y - 1, w, h, r, r, 0, 0);
+        };
+        SVGRenderer.prototype.symbols.bottombutton = function (x, y, w, h, options) {
+            var r = (options && options.r) || 0;
+            return selectiveRoundedRect(x - 1, y - 1, w, h, 0, 0, r, r);
+        };
+        // The symbol callbacks are generated on the SVGRenderer object in all browsers.
+        // Even VML browsers need this in order to generate shapes in export. Now share
+        // them with the VMLRenderer.
+        if (Renderer === VMLRenderer) {
+            ['topbutton', 'bottombutton'].forEach(function (shape) {
+                VMLRenderer.prototype.symbols[shape] =
+                    SVGRenderer.prototype.symbols[shape];
+            });
+        }
+        /**
+         * The factory function for creating new map charts. Creates a new {@link
+         * Highcharts.Chart|Chart} object with different default options than the basic
+         * Chart.
+         *
+         * @requires modules/map
+         *
+         * @function Highcharts.mapChart
+         *
+         * @param {string|Highcharts.HTMLDOMElement} [renderTo]
+         *        The DOM element to render to, or its id.
+         *
+         * @param {Highcharts.Options} options
+         *        The chart options structure as described in the
+         *        [options reference](https://api.highcharts.com/highstock).
+         *
+         * @param {Highcharts.ChartCallbackFunction} [callback]
+         *        A function to execute when the chart object is finished loading and
+         *        rendering. In most cases the chart is built in one thread, but in
+         *        Internet Explorer version 8 or less the chart is sometimes
+         *        initialized before the document is ready, and in these cases the
+         *        chart object will not be finished synchronously. As a consequence,
+         *        code that relies on the newly built Chart object should always run in
+         *        the callback. Defining a
+         *        [chart.events.load](https://api.highcharts.com/highstock/chart.events.load)
+         *        handler is equivalent.
+         *
+         * @return {Highcharts.Chart}
+         *         The chart object.
+         */
+        var mapChart = H.Map /* fake class for jQuery */ = H.mapChart = function (a,
+            b,
+            c) {
+                var hasRenderToArg = typeof a === 'string' || a.nodeName,
+            options = arguments[hasRenderToArg ? 1 : 0],
+            userOptions = options,
+            hiddenAxis = {
+                    endOnTick: false,
+                    visible: false,
+                    minPadding: 0,
+                    maxPadding: 0,
+                    startOnTick: false
+                },
+            seriesOptions,
+            defaultCreditsOptions = getOptions().credits;
+            /* For visual testing
+            hiddenAxis.gridLineWidth = 1;
+            hiddenAxis.gridZIndex = 10;
+            hiddenAxis.tickPositions = undefined;
+            // */
+            // Don't merge the data
+            seriesOptions = options.series;
+            options.series = null;
+            options = merge({
+                chart: {
+                    panning: {
+                        enabled: true,
+                        type: 'xy'
+                    },
+                    type: 'map'
+                },
+                credits: {
+                    mapText: pick(defaultCreditsOptions.mapText, ' \u00a9 <a href="{geojson.copyrightUrl}">' +
+                        '{geojson.copyrightShort}</a>'),
+                    mapTextFull: pick(defaultCreditsOptions.mapTextFull, '{geojson.copyright}')
+                },
+                tooltip: {
+                    followTouchMove: false
+                },
+                xAxis: hiddenAxis,
+                yAxis: merge(hiddenAxis, { reversed: true })
+            }, options, // user's options
+            {
+                chart: {
+                    inverted: false,
+                    alignTicks: false
+                }
+            });
+            options.series = userOptions.series = seriesOptions;
+            return hasRenderToArg ?
+                new Chart(a, options, c) :
+                new Chart(options, b);
+        };
+        var mapModule = {
+                mapChart: mapChart,
+                maps: H.maps,
+                splitPath: splitPath
+            };
+
+        return mapModule;
+    });
+    _registerModule(_modules, 'Series/MapSeries.js', [_modules['Core/Series/Series.js'], _modules['Mixins/ColorMapSeries.js'], _modules['Core/Globals.js'], _modules['Mixins/LegendSymbol.js'], _modules['Maps/Map.js'], _modules['Core/Series/Point.js'], _modules['Core/Renderer/SVG/SVGRenderer.js'], _modules['Core/Utilities.js']], function (BaseSeries, ColorMapMixin, H, LegendSymbolMixin, mapModule, Point, SVGRenderer, U) {
+        /* *
+         *
+         *  (c) 2010-2020 Torstein Honsi
+         *
+         *  License: www.highcharts.com/license
+         *
+         *  !!!!!!! SOURCE GETS TRANSPILED BY TYPESCRIPT. EDIT TS FILE ONLY. !!!!!!!
+         *
+         * */
+        var colorMapPointMixin = ColorMapMixin.colorMapPointMixin,
+            colorMapSeriesMixin = ColorMapMixin.colorMapSeriesMixin;
+        var noop = H.noop;
+        var maps = mapModule.maps,
+            splitPath = mapModule.splitPath;
         var extend = U.extend,
             fireEvent = U.fireEvent,
             getNestedProperty = U.getNestedProperty,
@@ -1983,13 +2425,9 @@
             merge = U.merge,
             objectEach = U.objectEach,
             pick = U.pick,
-            seriesType = U.seriesType,
             splat = U.splat;
-        var colorMapPointMixin = H.colorMapPointMixin,
-            colorMapSeriesMixin = H.colorMapSeriesMixin,
-            noop = H.noop,
-            Series = H.Series,
-            seriesTypes = H.seriesTypes;
+        var Series = H.Series,
+            seriesTypes = BaseSeries.seriesTypes;
         /**
          * @private
          * @class
@@ -1997,7 +2435,7 @@
          *
          * @augments Highcharts.Series
          */
-        seriesType('map', 'scatter', 
+        BaseSeries.seriesType('map', 'scatter', 
         /**
          * The map series is used for basic choropleth maps, where each map area has
          * a color based on its value.
@@ -2089,7 +2527,7 @@
              *         Borders demo
              *
              * @type      {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
-             * @default   '#cccccc'
+             * @default   #cccccc
              * @product   highmaps
              * @apioption plotOptions.series.borderColor
              *
@@ -2114,6 +2552,7 @@
              */
             borderWidth: 1,
             /**
+             * @type      {string}
              * @default   value
              * @apioption plotOptions.map.colorKey
              */
@@ -2144,8 +2583,6 @@
              * @default   hc-key
              * @product   highmaps
              * @apioption plotOptions.series.joinBy
-             *
-             * @private
              */
             joinBy: 'hc-key',
             /**
@@ -2279,7 +2716,7 @@
                 (paths || []).forEach(function (point) {
                     if (point.path) {
                         if (typeof point.path === 'string') {
-                            point.path = H.splitPath(point.path);
+                            point.path = splitPath(point.path);
                             // Legacy one-dimensional array
                         }
                         else if (point.path[0] === 'M') {
@@ -2440,7 +2877,7 @@
                 // Collect mapData from chart options if not defined on series
                 if (!mapData && globalMapData) {
                     mapData = typeof globalMapData === 'string' ?
-                        H.maps[globalMapData] :
+                        maps[globalMapData] :
                         globalMapData;
                 }
                 // Pick up numeric values, add index
@@ -3120,7 +3557,7 @@
         ''; // adds doclets above to the transpiled file
 
     });
-    _registerModule(_modules, 'Series/MapLineSeries.js', [_modules['Core/Globals.js'], _modules['Core/Utilities.js']], function (H, U) {
+    _registerModule(_modules, 'Series/MapLineSeries.js', [_modules['Core/Series/Series.js']], function (BaseSeries) {
         /* *
          *
          *  (c) 2010-2020 Torstein Honsi
@@ -3130,8 +3567,7 @@
          *  !!!!!!! SOURCE GETS TRANSPILED BY TYPESCRIPT. EDIT TS FILE ONLY. !!!!!!!
          *
          * */
-        var seriesType = U.seriesType;
-        var seriesTypes = H.seriesTypes;
+        var seriesTypes = BaseSeries.seriesTypes;
         /**
          * @private
          * @class
@@ -3139,7 +3575,7 @@
          *
          * @augments Highcharts.Series
          */
-        seriesType('mapline', 'map', 
+        BaseSeries.seriesType('mapline', 'map', 
         /**
          * A mapline series is a special case of the map series where the value
          * colors are applied to the strokes rather than the fills. It can also be
@@ -3248,7 +3684,7 @@
         ''; // adds doclets above to transpiled file
 
     });
-    _registerModule(_modules, 'Series/MapPointSeries.js', [_modules['Core/Globals.js']], function (H) {
+    _registerModule(_modules, 'Series/MapPointSeries.js', [_modules['Core/Series/Series.js'], _modules['Core/Globals.js'], _modules['Core/Series/Point.js'], _modules['Core/Utilities.js']], function (BaseSeries, H, Point, U) {
         /* *
          *
          *  (c) 2010-2020 Torstein Honsi
@@ -3258,10 +3694,8 @@
          *  !!!!!!! SOURCE GETS TRANSPILED BY TYPESCRIPT. EDIT TS FILE ONLY. !!!!!!!
          *
          * */
-        var merge = H.merge,
-            Point = H.Point,
-            Series = H.Series,
-            seriesType = H.seriesType;
+        var merge = U.merge;
+        var Series = H.Series;
         /**
          * @private
          * @class
@@ -3269,7 +3703,7 @@
          *
          * @augments Highcharts.Series
          */
-        seriesType('mappoint', 'scatter', 
+        BaseSeries.seriesType('mappoint', 'scatter', 
         /**
          * A mappoint series is a special form of scatter series where the points
          * can be laid out in map coordinates on top of a map.
@@ -3423,1023 +3857,7 @@
         ''; // adds doclets above to transpiled file
 
     });
-    _registerModule(_modules, 'Series/Bubble/BubbleLegend.js', [_modules['Core/Chart/Chart.js'], _modules['Core/Color.js'], _modules['Core/Globals.js'], _modules['Core/Legend.js'], _modules['Core/Utilities.js']], function (Chart, Color, H, Legend, U) {
-        /* *
-         *
-         *  (c) 2010-2020 Highsoft AS
-         *
-         *  Author: Paweł Potaczek
-         *
-         *  License: www.highcharts.com/license
-         *
-         *  !!!!!!! SOURCE GETS TRANSPILED BY TYPESCRIPT. EDIT TS FILE ONLY. !!!!!!!
-         *
-         * */
-        var color = Color.parse;
-        var addEvent = U.addEvent,
-            arrayMax = U.arrayMax,
-            arrayMin = U.arrayMin,
-            isNumber = U.isNumber,
-            merge = U.merge,
-            objectEach = U.objectEach,
-            pick = U.pick,
-            setOptions = U.setOptions,
-            stableSort = U.stableSort,
-            wrap = U.wrap;
-        /**
-         * @interface Highcharts.BubbleLegendFormatterContextObject
-         */ /**
-        * The center y position of the range.
-        * @name Highcharts.BubbleLegendFormatterContextObject#center
-        * @type {number}
-        */ /**
-        * The radius of the bubble range.
-        * @name Highcharts.BubbleLegendFormatterContextObject#radius
-        * @type {number}
-        */ /**
-        * The bubble value.
-        * @name Highcharts.BubbleLegendFormatterContextObject#value
-        * @type {number}
-        */
-        ''; // detach doclets above
-        var Series = H.Series,
-            noop = H.noop;
-        setOptions({
-            legend: {
-                /**
-                 * The bubble legend is an additional element in legend which
-                 * presents the scale of the bubble series. Individual bubble ranges
-                 * can be defined by user or calculated from series. In the case of
-                 * automatically calculated ranges, a 1px margin of error is
-                 * permitted.
-                 *
-                 * @since        7.0.0
-                 * @product      highcharts highstock highmaps
-                 * @requires     highcharts-more
-                 * @optionparent legend.bubbleLegend
-                 */
-                bubbleLegend: {
-                    /**
-                     * The color of the ranges borders, can be also defined for an
-                     * individual range.
-                     *
-                     * @sample highcharts/bubble-legend/similartoseries/
-                     *         Similat look to the bubble series
-                     * @sample highcharts/bubble-legend/bordercolor/
-                     *         Individual bubble border color
-                     *
-                     * @type {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
-                     */
-                    borderColor: void 0,
-                    /**
-                     * The width of the ranges borders in pixels, can be also
-                     * defined for an individual range.
-                     */
-                    borderWidth: 2,
-                    /**
-                     * An additional class name to apply to the bubble legend'
-                     * circle graphical elements. This option does not replace
-                     * default class names of the graphical element.
-                     *
-                     * @sample {highcharts} highcharts/css/bubble-legend/
-                     *         Styling by CSS
-                     *
-                     * @type {string}
-                     */
-                    className: void 0,
-                    /**
-                     * The main color of the bubble legend. Applies to ranges, if
-                     * individual color is not defined.
-                     *
-                     * @sample highcharts/bubble-legend/similartoseries/
-                     *         Similat look to the bubble series
-                     * @sample highcharts/bubble-legend/color/
-                     *         Individual bubble color
-                     *
-                     * @type {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
-                     */
-                    color: void 0,
-                    /**
-                     * An additional class name to apply to the bubble legend's
-                     * connector graphical elements. This option does not replace
-                     * default class names of the graphical element.
-                     *
-                     * @sample {highcharts} highcharts/css/bubble-legend/
-                     *         Styling by CSS
-                     *
-                     * @type {string}
-                     */
-                    connectorClassName: void 0,
-                    /**
-                     * The color of the connector, can be also defined
-                     * for an individual range.
-                     *
-                     * @type {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
-                     */
-                    connectorColor: void 0,
-                    /**
-                     * The length of the connectors in pixels. If labels are
-                     * centered, the distance is reduced to 0.
-                     *
-                     * @sample highcharts/bubble-legend/connectorandlabels/
-                     *         Increased connector length
-                     */
-                    connectorDistance: 60,
-                    /**
-                     * The width of the connectors in pixels.
-                     *
-                     * @sample highcharts/bubble-legend/connectorandlabels/
-                     *         Increased connector width
-                     */
-                    connectorWidth: 1,
-                    /**
-                     * Enable or disable the bubble legend.
-                     */
-                    enabled: false,
-                    /**
-                     * Options for the bubble legend labels.
-                     */
-                    labels: {
-                        /**
-                         * An additional class name to apply to the bubble legend
-                         * label graphical elements. This option does not replace
-                         * default class names of the graphical element.
-                         *
-                         * @sample {highcharts} highcharts/css/bubble-legend/
-                         *         Styling by CSS
-                         *
-                         * @type {string}
-                         */
-                        className: void 0,
-                        /**
-                         * Whether to allow data labels to overlap.
-                         */
-                        allowOverlap: false,
-                        /**
-                         * A format string for the bubble legend labels. Available
-                         * variables are the same as for `formatter`.
-                         *
-                         * @sample highcharts/bubble-legend/format/
-                         *         Add a unit
-                         *
-                         * @type {string}
-                         */
-                        format: '',
-                        /**
-                         * Available `this` properties are:
-                         *
-                         * - `this.value`: The bubble value.
-                         *
-                         * - `this.radius`: The radius of the bubble range.
-                         *
-                         * - `this.center`: The center y position of the range.
-                         *
-                         * @type {Highcharts.FormatterCallbackFunction<Highcharts.BubbleLegendFormatterContextObject>}
-                         */
-                        formatter: void 0,
-                        /**
-                         * The alignment of the labels compared to the bubble
-                         * legend. Can be one of `left`, `center` or `right`.
-                         *
-                         * @sample highcharts/bubble-legend/connectorandlabels/
-                         *         Labels on left
-                         *
-                         * @type {Highcharts.AlignValue}
-                         */
-                        align: 'right',
-                        /**
-                         * CSS styles for the labels.
-                         *
-                         * @type {Highcharts.CSSObject}
-                         */
-                        style: {
-                            /** @ignore-option */
-                            fontSize: 10,
-                            /** @ignore-option */
-                            color: void 0
-                        },
-                        /**
-                         * The x position offset of the label relative to the
-                         * connector.
-                         */
-                        x: 0,
-                        /**
-                         * The y position offset of the label relative to the
-                         * connector.
-                         */
-                        y: 0
-                    },
-                    /**
-                     * Miximum bubble legend range size. If values for ranges are
-                     * not specified, the `minSize` and the `maxSize` are calculated
-                     * from bubble series.
-                     */
-                    maxSize: 60,
-                    /**
-                     * Minimum bubble legend range size. If values for ranges are
-                     * not specified, the `minSize` and the `maxSize` are calculated
-                     * from bubble series.
-                     */
-                    minSize: 10,
-                    /**
-                     * The position of the bubble legend in the legend.
-                     * @sample highcharts/bubble-legend/connectorandlabels/
-                     *         Bubble legend as last item in legend
-                     */
-                    legendIndex: 0,
-                    /**
-                     * Options for specific range. One range consists of bubble,
-                     * label and connector.
-                     *
-                     * @sample highcharts/bubble-legend/ranges/
-                     *         Manually defined ranges
-                     * @sample highcharts/bubble-legend/autoranges/
-                     *         Auto calculated ranges
-                     *
-                     * @type {Array<*>}
-                     */
-                    ranges: {
-                        /**
-                         * Range size value, similar to bubble Z data.
-                         * @type {number}
-                         */
-                        value: void 0,
-                        /**
-                         * The color of the border for individual range.
-                         * @type {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
-                         */
-                        borderColor: void 0,
-                        /**
-                         * The color of the bubble for individual range.
-                         * @type {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
-                         */
-                        color: void 0,
-                        /**
-                         * The color of the connector for individual range.
-                         * @type {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
-                         */
-                        connectorColor: void 0
-                    },
-                    /**
-                     * Whether the bubble legend range value should be represented
-                     * by the area or the width of the bubble. The default, area,
-                     * corresponds best to the human perception of the size of each
-                     * bubble.
-                     *
-                     * @sample highcharts/bubble-legend/ranges/
-                     *         Size by width
-                     *
-                     * @type {Highcharts.BubbleSizeByValue}
-                     */
-                    sizeBy: 'area',
-                    /**
-                     * When this is true, the absolute value of z determines the
-                     * size of the bubble. This means that with the default
-                     * zThreshold of 0, a bubble of value -1 will have the same size
-                     * as a bubble of value 1, while a bubble of value 0 will have a
-                     * smaller size according to minSize.
-                     */
-                    sizeByAbsoluteValue: false,
-                    /**
-                     * Define the visual z index of the bubble legend.
-                     */
-                    zIndex: 1,
-                    /**
-                     * Ranges with with lower value than zThreshold, are skipped.
-                     */
-                    zThreshold: 0
-                }
-            }
-        });
-        /* eslint-disable no-invalid-this, valid-jsdoc */
-        /**
-         * BubbleLegend class.
-         *
-         * @private
-         * @class
-         * @name Highcharts.BubbleLegend
-         * @param {Highcharts.LegendBubbleLegendOptions} options
-         *        Bubble legend options
-         * @param {Highcharts.Legend} legend
-         *        Legend
-         */
-        var BubbleLegend = /** @class */ (function () {
-                function BubbleLegend(options, legend) {
-                    this.chart = void 0;
-                this.fontMetrics = void 0;
-                this.legend = void 0;
-                this.legendGroup = void 0;
-                this.legendItem = void 0;
-                this.legendItemHeight = void 0;
-                this.legendItemWidth = void 0;
-                this.legendSymbol = void 0;
-                this.maxLabel = void 0;
-                this.movementX = void 0;
-                this.ranges = void 0;
-                this.visible = void 0;
-                this.symbols = void 0;
-                this.options = void 0;
-                this.setState = noop;
-                this.init(options, legend);
-            }
-            /**
-             * Create basic bubbleLegend properties similar to item in legend.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#init
-             * @param {Highcharts.LegendBubbleLegendOptions} options
-             *        Bubble legend options
-             * @param {Highcharts.Legend} legend
-             *        Legend
-             * @return {void}
-             */
-            BubbleLegend.prototype.init = function (options, legend) {
-                this.options = options;
-                this.visible = true;
-                this.chart = legend.chart;
-                this.legend = legend;
-            };
-            /**
-             * Depending on the position option, add bubbleLegend to legend items.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#addToLegend
-             * @param {Array<(Highcharts.Point|Highcharts.Series)>}
-             *        All legend items
-             * @return {void}
-             */
-            BubbleLegend.prototype.addToLegend = function (items) {
-                // Insert bubbleLegend into legend items
-                items.splice(this.options.legendIndex, 0, this);
-            };
-            /**
-             * Calculate ranges, sizes and call the next steps of bubbleLegend
-             * creation.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#drawLegendSymbol
-             * @param {Highcharts.Legend} legend
-             *        Legend instance
-             * @return {void}
-             */
-            BubbleLegend.prototype.drawLegendSymbol = function (legend) {
-                var chart = this.chart,
-                    options = this.options,
-                    size,
-                    itemDistance = pick(legend.options.itemDistance, 20),
-                    connectorSpace,
-                    ranges = options.ranges,
-                    radius,
-                    maxLabel,
-                    connectorDistance = options.connectorDistance;
-                // Predict label dimensions
-                this.fontMetrics = chart.renderer.fontMetrics(options.labels.style.fontSize.toString() + 'px');
-                // Do not create bubbleLegend now if ranges or ranges valeus are not
-                // specified or if are empty array.
-                if (!ranges || !ranges.length || !isNumber(ranges[0].value)) {
-                    legend.options.bubbleLegend.autoRanges = true;
-                    return;
-                }
-                // Sort ranges to right render order
-                stableSort(ranges, function (a, b) {
-                    return b.value - a.value;
-                });
-                this.ranges = ranges;
-                this.setOptions();
-                this.render();
-                // Get max label size
-                maxLabel = this.getMaxLabelSize();
-                radius = this.ranges[0].radius;
-                size = radius * 2;
-                // Space for connectors and labels.
-                connectorSpace =
-                    connectorDistance - radius + maxLabel.width;
-                connectorSpace = connectorSpace > 0 ? connectorSpace : 0;
-                this.maxLabel = maxLabel;
-                this.movementX = options.labels.align === 'left' ?
-                    connectorSpace : 0;
-                this.legendItemWidth = size + connectorSpace + itemDistance;
-                this.legendItemHeight = size + this.fontMetrics.h / 2;
-            };
-            /**
-             * Set style options for each bubbleLegend range.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#setOptions
-             * @return {void}
-             */
-            BubbleLegend.prototype.setOptions = function () {
-                var ranges = this.ranges,
-                    options = this.options,
-                    series = this.chart.series[options.seriesIndex],
-                    baseline = this.legend.baseline,
-                    bubbleStyle = {
-                        'z-index': options.zIndex,
-                        'stroke-width': options.borderWidth
-                    },
-                    connectorStyle = {
-                        'z-index': options.zIndex,
-                        'stroke-width': options.connectorWidth
-                    },
-                    labelStyle = this.getLabelStyles(),
-                    fillOpacity = series.options.marker.fillOpacity,
-                    styledMode = this.chart.styledMode;
-                // Allow to parts of styles be used individually for range
-                ranges.forEach(function (range, i) {
-                    if (!styledMode) {
-                        bubbleStyle.stroke = pick(range.borderColor, options.borderColor, series.color);
-                        bubbleStyle.fill = pick(range.color, options.color, fillOpacity !== 1 ?
-                            color(series.color).setOpacity(fillOpacity)
-                                .get('rgba') :
-                            series.color);
-                        connectorStyle.stroke = pick(range.connectorColor, options.connectorColor, series.color);
-                    }
-                    // Set options needed for rendering each range
-                    ranges[i].radius = this.getRangeRadius(range.value);
-                    ranges[i] = merge(ranges[i], {
-                        center: (ranges[0].radius - ranges[i].radius +
-                            baseline)
-                    });
-                    if (!styledMode) {
-                        merge(true, ranges[i], {
-                            bubbleStyle: merge(false, bubbleStyle),
-                            connectorStyle: merge(false, connectorStyle),
-                            labelStyle: labelStyle
-                        });
-                    }
-                }, this);
-            };
-            /**
-             * Merge options for bubbleLegend labels.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#getLabelStyles
-             * @return {Highcharts.CSSObject}
-             */
-            BubbleLegend.prototype.getLabelStyles = function () {
-                var options = this.options,
-                    additionalLabelsStyle = {},
-                    labelsOnLeft = options.labels.align === 'left',
-                    rtl = this.legend.options.rtl;
-                // To separate additional style options
-                objectEach(options.labels.style, function (value, key) {
-                    if (key !== 'color' &&
-                        key !== 'fontSize' &&
-                        key !== 'z-index') {
-                        additionalLabelsStyle[key] = value;
-                    }
-                });
-                return merge(false, additionalLabelsStyle, {
-                    'font-size': options.labels.style.fontSize,
-                    fill: pick(options.labels.style.color, '#000000'),
-                    'z-index': options.zIndex,
-                    align: rtl || labelsOnLeft ? 'right' : 'left'
-                });
-            };
-            /**
-             * Calculate radius for each bubble range,
-             * used code from BubbleSeries.js 'getRadius' method.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#getRangeRadius
-             * @param {number} value
-             *        Range value
-             * @return {number|null}
-             *         Radius for one range
-             */
-            BubbleLegend.prototype.getRangeRadius = function (value) {
-                var options = this.options,
-                    seriesIndex = this.options.seriesIndex,
-                    bubbleSeries = this.chart.series[seriesIndex],
-                    zMax = options.ranges[0].value,
-                    zMin = options.ranges[options.ranges.length - 1].value,
-                    minSize = options.minSize,
-                    maxSize = options.maxSize;
-                return bubbleSeries.getRadius.call(this, zMin, zMax, minSize, maxSize, value);
-            };
-            /**
-             * Render the legendSymbol group.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#render
-             * @return {void}
-             */
-            BubbleLegend.prototype.render = function () {
-                var renderer = this.chart.renderer,
-                    zThreshold = this.options.zThreshold;
-                if (!this.symbols) {
-                    this.symbols = {
-                        connectors: [],
-                        bubbleItems: [],
-                        labels: []
-                    };
-                }
-                // Nesting SVG groups to enable handleOverflow
-                this.legendSymbol = renderer.g('bubble-legend');
-                this.legendItem = renderer.g('bubble-legend-item');
-                // To enable default 'hideOverlappingLabels' method
-                this.legendSymbol.translateX = 0;
-                this.legendSymbol.translateY = 0;
-                this.ranges.forEach(function (range) {
-                    if (range.value >= zThreshold) {
-                        this.renderRange(range);
-                    }
-                }, this);
-                // To use handleOverflow method
-                this.legendSymbol.add(this.legendItem);
-                this.legendItem.add(this.legendGroup);
-                this.hideOverlappingLabels();
-            };
-            /**
-             * Render one range, consisting of bubble symbol, connector and label.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#renderRange
-             * @param {Highcharts.LegendBubbleLegendRangesOptions} range
-             *        Range options
-             * @return {void}
-             */
-            BubbleLegend.prototype.renderRange = function (range) {
-                var mainRange = this.ranges[0],
-                    legend = this.legend,
-                    options = this.options,
-                    labelsOptions = options.labels,
-                    chart = this.chart,
-                    renderer = chart.renderer,
-                    symbols = this.symbols,
-                    labels = symbols.labels,
-                    label,
-                    elementCenter = range.center,
-                    absoluteRadius = Math.abs(range.radius),
-                    connectorDistance = options.connectorDistance || 0,
-                    labelsAlign = labelsOptions.align,
-                    rtl = legend.options.rtl,
-                    fontSize = labelsOptions.style.fontSize,
-                    connectorLength = rtl || labelsAlign === 'left' ?
-                        -connectorDistance : connectorDistance,
-                    borderWidth = options.borderWidth,
-                    connectorWidth = options.connectorWidth,
-                    posX = mainRange.radius || 0,
-                    posY = elementCenter - absoluteRadius -
-                        borderWidth / 2 + connectorWidth / 2,
-                    labelY,
-                    labelX,
-                    fontMetrics = this.fontMetrics,
-                    labelMovement = fontSize / 2 - (fontMetrics.h - fontSize) / 2,
-                    crispMovement = (posY % 1 ? 1 : 0.5) -
-                        (connectorWidth % 2 ? 0 : 0.5),
-                    styledMode = renderer.styledMode;
-                // Set options for centered labels
-                if (labelsAlign === 'center') {
-                    connectorLength = 0; // do not use connector
-                    options.connectorDistance = 0;
-                    range.labelStyle.align = 'center';
-                }
-                labelY = posY + options.labels.y;
-                labelX = posX + connectorLength + options.labels.x;
-                // Render bubble symbol
-                symbols.bubbleItems.push(renderer
-                    .circle(posX, elementCenter + crispMovement, absoluteRadius)
-                    .attr(styledMode ? {} : range.bubbleStyle)
-                    .addClass((styledMode ?
-                    'highcharts-color-' +
-                        this.options.seriesIndex + ' ' :
-                    '') +
-                    'highcharts-bubble-legend-symbol ' +
-                    (options.className || '')).add(this.legendSymbol));
-                // Render connector
-                symbols.connectors.push(renderer
-                    .path(renderer.crispLine([
-                    ['M', posX, posY],
-                    ['L', posX + connectorLength, posY]
-                ], options.connectorWidth))
-                    .attr(styledMode ? {} : range.connectorStyle)
-                    .addClass((styledMode ?
-                    'highcharts-color-' +
-                        this.options.seriesIndex + ' ' : '') +
-                    'highcharts-bubble-legend-connectors ' +
-                    (options.connectorClassName || '')).add(this.legendSymbol));
-                // Render label
-                label = renderer
-                    .text(this.formatLabel(range), labelX, labelY + labelMovement)
-                    .attr(styledMode ? {} : range.labelStyle)
-                    .addClass('highcharts-bubble-legend-labels ' +
-                    (options.labels.className || '')).add(this.legendSymbol);
-                labels.push(label);
-                // To enable default 'hideOverlappingLabels' method
-                label.placed = true;
-                label.alignAttr = {
-                    x: labelX,
-                    y: labelY + labelMovement
-                };
-            };
-            /**
-             * Get the label which takes up the most space.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#getMaxLabelSize
-             * @return {Highcharts.BBoxObject}
-             */
-            BubbleLegend.prototype.getMaxLabelSize = function () {
-                var labels = this.symbols.labels,
-                    maxLabel,
-                    labelSize;
-                labels.forEach(function (label) {
-                    labelSize = label.getBBox(true);
-                    if (maxLabel) {
-                        maxLabel = labelSize.width > maxLabel.width ?
-                            labelSize : maxLabel;
-                    }
-                    else {
-                        maxLabel = labelSize;
-                    }
-                });
-                return maxLabel || {};
-            };
-            /**
-             * Get formatted label for range.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#formatLabel
-             * @param {Highcharts.LegendBubbleLegendRangesOptions} range
-             *        Range options
-             * @return {string}
-             *         Range label text
-             */
-            BubbleLegend.prototype.formatLabel = function (range) {
-                var options = this.options,
-                    formatter = options.labels.formatter,
-                    format = options.labels.format;
-                var numberFormatter = this.chart.numberFormatter;
-                return format ? U.format(format, range) :
-                    formatter ? formatter.call(range) :
-                        numberFormatter(range.value, 1);
-            };
-            /**
-             * By using default chart 'hideOverlappingLabels' method, hide or show
-             * labels and connectors.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#hideOverlappingLabels
-             * @return {void}
-             */
-            BubbleLegend.prototype.hideOverlappingLabels = function () {
-                var chart = this.chart,
-                    allowOverlap = this.options.labels.allowOverlap,
-                    symbols = this.symbols;
-                if (!allowOverlap && symbols) {
-                    chart.hideOverlappingLabels(symbols.labels);
-                    // Hide or show connectors
-                    symbols.labels.forEach(function (label, index) {
-                        if (!label.newOpacity) {
-                            symbols.connectors[index].hide();
-                        }
-                        else if (label.newOpacity !== label.oldOpacity) {
-                            symbols.connectors[index].show();
-                        }
-                    });
-                }
-            };
-            /**
-             * Calculate ranges from created series.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#getRanges
-             * @return {Array<Highcharts.LegendBubbleLegendRangesOptions>}
-             *         Array of range objects
-             */
-            BubbleLegend.prototype.getRanges = function () {
-                var bubbleLegend = this.legend.bubbleLegend,
-                    series = bubbleLegend.chart.series,
-                    ranges,
-                    rangesOptions = bubbleLegend.options.ranges,
-                    zData,
-                    minZ = Number.MAX_VALUE,
-                    maxZ = -Number.MAX_VALUE;
-                series.forEach(function (s) {
-                    // Find the min and max Z, like in bubble series
-                    if (s.isBubble && !s.ignoreSeries) {
-                        zData = s.zData.filter(isNumber);
-                        if (zData.length) {
-                            minZ = pick(s.options.zMin, Math.min(minZ, Math.max(arrayMin(zData), s.options.displayNegative === false ?
-                                s.options.zThreshold :
-                                -Number.MAX_VALUE)));
-                            maxZ = pick(s.options.zMax, Math.max(maxZ, arrayMax(zData)));
-                        }
-                    }
-                });
-                // Set values for ranges
-                if (minZ === maxZ) {
-                    // Only one range if min and max values are the same.
-                    ranges = [{ value: maxZ }];
-                }
-                else {
-                    ranges = [
-                        { value: minZ },
-                        { value: (minZ + maxZ) / 2 },
-                        { value: maxZ, autoRanges: true }
-                    ];
-                }
-                // Prevent reverse order of ranges after redraw
-                if (rangesOptions.length && rangesOptions[0].radius) {
-                    ranges.reverse();
-                }
-                // Merge ranges values with user options
-                ranges.forEach(function (range, i) {
-                    if (rangesOptions && rangesOptions[i]) {
-                        ranges[i] = merge(false, rangesOptions[i], range);
-                    }
-                });
-                return ranges;
-            };
-            /**
-             * Calculate bubble legend sizes from rendered series.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#predictBubbleSizes
-             * @return {Array<number,number>}
-             *         Calculated min and max bubble sizes
-             */
-            BubbleLegend.prototype.predictBubbleSizes = function () {
-                var chart = this.chart,
-                    fontMetrics = this.fontMetrics,
-                    legendOptions = chart.legend.options,
-                    floating = legendOptions.floating,
-                    horizontal = legendOptions.layout === 'horizontal',
-                    lastLineHeight = horizontal ? chart.legend.lastLineHeight : 0,
-                    plotSizeX = chart.plotSizeX,
-                    plotSizeY = chart.plotSizeY,
-                    bubbleSeries = chart.series[this.options.seriesIndex],
-                    minSize = Math.ceil(bubbleSeries.minPxSize),
-                    maxPxSize = Math.ceil(bubbleSeries.maxPxSize),
-                    maxSize = bubbleSeries.options.maxSize,
-                    plotSize = Math.min(plotSizeY,
-                    plotSizeX),
-                    calculatedSize;
-                // Calculate prediceted max size of bubble
-                if (floating || !(/%$/.test(maxSize))) {
-                    calculatedSize = maxPxSize;
-                }
-                else {
-                    maxSize = parseFloat(maxSize);
-                    calculatedSize = ((plotSize + lastLineHeight -
-                        fontMetrics.h / 2) * maxSize / 100) / (maxSize / 100 + 1);
-                    // Get maxPxSize from bubble series if calculated bubble legend
-                    // size will not affect to bubbles series.
-                    if ((horizontal && plotSizeY - calculatedSize >=
-                        plotSizeX) || (!horizontal && plotSizeX -
-                        calculatedSize >= plotSizeY)) {
-                        calculatedSize = maxPxSize;
-                    }
-                }
-                return [minSize, Math.ceil(calculatedSize)];
-            };
-            /**
-             * Correct ranges with calculated sizes.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#updateRanges
-             * @param {number} min
-             * @param {number} max
-             * @return {void}
-             */
-            BubbleLegend.prototype.updateRanges = function (min, max) {
-                var bubbleLegendOptions = this.legend.options.bubbleLegend;
-                bubbleLegendOptions.minSize = min;
-                bubbleLegendOptions.maxSize = max;
-                bubbleLegendOptions.ranges = this.getRanges();
-            };
-            /**
-             * Because of the possibility of creating another legend line, predicted
-             * bubble legend sizes may differ by a few pixels, so it is necessary to
-             * correct them.
-             *
-             * @private
-             * @function Highcharts.BubbleLegend#correctSizes
-             * @return {void}
-             */
-            BubbleLegend.prototype.correctSizes = function () {
-                var legend = this.legend,
-                    chart = this.chart,
-                    bubbleSeries = chart.series[this.options.seriesIndex],
-                    bubbleSeriesSize = bubbleSeries.maxPxSize,
-                    bubbleLegendSize = this.options.maxSize;
-                if (Math.abs(Math.ceil(bubbleSeriesSize) - bubbleLegendSize) >
-                    1) {
-                    this.updateRanges(this.options.minSize, bubbleSeries.maxPxSize);
-                    legend.render();
-                }
-            };
-            return BubbleLegend;
-        }());
-        // Start the bubble legend creation process.
-        addEvent(Legend, 'afterGetAllItems', function (e) {
-            var legend = this,
-                bubbleLegend = legend.bubbleLegend,
-                legendOptions = legend.options,
-                options = legendOptions.bubbleLegend,
-                bubbleSeriesIndex = legend.chart.getVisibleBubbleSeriesIndex();
-            // Remove unnecessary element
-            if (bubbleLegend && bubbleLegend.ranges && bubbleLegend.ranges.length) {
-                // Allow change the way of calculating ranges in update
-                if (options.ranges.length) {
-                    options.autoRanges =
-                        !!options.ranges[0].autoRanges;
-                }
-                // Update bubbleLegend dimensions in each redraw
-                legend.destroyItem(bubbleLegend);
-            }
-            // Create bubble legend
-            if (bubbleSeriesIndex >= 0 &&
-                legendOptions.enabled &&
-                options.enabled) {
-                options.seriesIndex = bubbleSeriesIndex;
-                legend.bubbleLegend = new H.BubbleLegend(options, legend);
-                legend.bubbleLegend.addToLegend(e.allItems);
-            }
-        });
-        /**
-         * Check if there is at least one visible bubble series.
-         *
-         * @private
-         * @function Highcharts.Chart#getVisibleBubbleSeriesIndex
-         * @return {number}
-         *         First visible bubble series index
-         */
-        Chart.prototype.getVisibleBubbleSeriesIndex = function () {
-            var series = this.series,
-                i = 0;
-            while (i < series.length) {
-                if (series[i] &&
-                    series[i].isBubble &&
-                    series[i].visible &&
-                    series[i].zData.length) {
-                    return i;
-                }
-                i++;
-            }
-            return -1;
-        };
-        /**
-         * Calculate height for each row in legend.
-         *
-         * @private
-         * @function Highcharts.Legend#getLinesHeights
-         * @return {Array<Highcharts.Dictionary<number>>}
-         *         Informations about line height and items amount
-         */
-        Legend.prototype.getLinesHeights = function () {
-            var items = this.allItems,
-                lines = [],
-                lastLine,
-                length = items.length,
-                i = 0,
-                j = 0;
-            for (i = 0; i < length; i++) {
-                if (items[i].legendItemHeight) {
-                    // for bubbleLegend
-                    items[i].itemHeight = items[i].legendItemHeight;
-                }
-                if ( // Line break
-                items[i] === items[length - 1] ||
-                    items[i + 1] &&
-                        items[i]._legendItemPos[1] !==
-                            items[i + 1]._legendItemPos[1]) {
-                    lines.push({ height: 0 });
-                    lastLine = lines[lines.length - 1];
-                    // Find the highest item in line
-                    for (j; j <= i; j++) {
-                        if (items[j].itemHeight > lastLine.height) {
-                            lastLine.height = items[j].itemHeight;
-                        }
-                    }
-                    lastLine.step = i;
-                }
-            }
-            return lines;
-        };
-        /**
-         * Correct legend items translation in case of different elements heights.
-         *
-         * @private
-         * @function Highcharts.Legend#retranslateItems
-         * @param {Array<Highcharts.Dictionary<number>>} lines
-         *        Informations about line height and items amount
-         * @return {void}
-         */
-        Legend.prototype.retranslateItems = function (lines) {
-            var items = this.allItems,
-                orgTranslateX,
-                orgTranslateY,
-                movementX,
-                rtl = this.options.rtl,
-                actualLine = 0;
-            items.forEach(function (item, index) {
-                orgTranslateX = item.legendGroup.translateX;
-                orgTranslateY = item._legendItemPos[1];
-                movementX = item.movementX;
-                if (movementX || (rtl && item.ranges)) {
-                    movementX = rtl ?
-                        orgTranslateX - item.options.maxSize / 2 :
-                        orgTranslateX + movementX;
-                    item.legendGroup.attr({ translateX: movementX });
-                }
-                if (index > lines[actualLine].step) {
-                    actualLine++;
-                }
-                item.legendGroup.attr({
-                    translateY: Math.round(orgTranslateY + lines[actualLine].height / 2)
-                });
-                item._legendItemPos[1] = orgTranslateY +
-                    lines[actualLine].height / 2;
-            });
-        };
-        // Toggle bubble legend depending on the visible status of bubble series.
-        addEvent(Series, 'legendItemClick', function () {
-            var series = this,
-                chart = series.chart,
-                visible = series.visible,
-                legend = series.chart.legend,
-                status;
-            if (legend && legend.bubbleLegend) {
-                // Temporary correct 'visible' property
-                series.visible = !visible;
-                // Save future status for getRanges method
-                series.ignoreSeries = visible;
-                // Check if at lest one bubble series is visible
-                status = chart.getVisibleBubbleSeriesIndex() >= 0;
-                // Hide bubble legend if all bubble series are disabled
-                if (legend.bubbleLegend.visible !== status) {
-                    // Show or hide bubble legend
-                    legend.update({
-                        bubbleLegend: { enabled: status }
-                    });
-                    legend.bubbleLegend.visible = status; // Restore default status
-                }
-                series.visible = visible;
-            }
-        });
-        // If ranges are not specified, determine ranges from rendered bubble series
-        // and render legend again.
-        wrap(Chart.prototype, 'drawChartBox', function (proceed, options, callback) {
-            var chart = this,
-                legend = chart.legend,
-                bubbleSeries = chart.getVisibleBubbleSeriesIndex() >= 0,
-                bubbleLegendOptions,
-                bubbleSizes;
-            if (legend && legend.options.enabled && legend.bubbleLegend &&
-                legend.options.bubbleLegend.autoRanges && bubbleSeries) {
-                bubbleLegendOptions = legend.bubbleLegend.options;
-                bubbleSizes = legend.bubbleLegend.predictBubbleSizes();
-                legend.bubbleLegend.updateRanges(bubbleSizes[0], bubbleSizes[1]);
-                // Disable animation on init
-                if (!bubbleLegendOptions.placed) {
-                    legend.group.placed = false;
-                    legend.allItems.forEach(function (item) {
-                        item.legendGroup.translateY = null;
-                    });
-                }
-                // Create legend with bubbleLegend
-                legend.render();
-                chart.getMargins();
-                chart.axes.forEach(function (axis) {
-                    if (axis.visible) { // #11448
-                        axis.render();
-                    }
-                    if (!bubbleLegendOptions.placed) {
-                        axis.setScale();
-                        axis.updateNames();
-                        // Disable axis animation on init
-                        objectEach(axis.ticks, function (tick) {
-                            tick.isNew = true;
-                            tick.isNewLabel = true;
-                        });
-                    }
-                });
-                bubbleLegendOptions.placed = true;
-                // After recalculate axes, calculate margins again.
-                chart.getMargins();
-                // Call default 'drawChartBox' method.
-                proceed.call(chart, options, callback);
-                // Check bubble legend sizes and correct them if necessary.
-                legend.bubbleLegend.correctSizes();
-                // Correct items positions with different dimensions in legend.
-                legend.retranslateItems(legend.getLinesHeights());
-            }
-            else {
-                proceed.call(chart, options, callback);
-                // Allow color change on static bubble legend after click on legend
-                if (legend && legend.options.enabled && legend.bubbleLegend) {
-                    legend.render();
-                    legend.retranslateItems(legend.getLinesHeights());
-                }
-            }
-        });
-        H.BubbleLegend = BubbleLegend;
-
-        return H.BubbleLegend;
-    });
-    _registerModule(_modules, 'Series/Bubble/BubbleSeries.js', [_modules['Core/Globals.js'], _modules['Core/Color.js'], _modules['Core/Series/Point.js'], _modules['Core/Utilities.js']], function (H, Color, Point, U) {
+    _registerModule(_modules, 'Series/MapBubbleSeries.js', [_modules['Core/Series/Series.js'], _modules['Core/Series/Point.js'], _modules['Core/Utilities.js']], function (BaseSeries, Point, U) {
         /* *
          *
          *  (c) 2010-2020 Torstein Honsi
@@ -4449,614 +3867,8 @@
          *  !!!!!!! SOURCE GETS TRANSPILED BY TYPESCRIPT. EDIT TS FILE ONLY. !!!!!!!
          *
          * */
-        /**
-         * @typedef {"area"|"width"} Highcharts.BubbleSizeByValue
-         */
-        var color = Color.parse;
-        var arrayMax = U.arrayMax,
-            arrayMin = U.arrayMin,
-            clamp = U.clamp,
-            extend = U.extend,
-            isNumber = U.isNumber,
-            pick = U.pick,
-            pInt = U.pInt,
-            seriesType = U.seriesType;
-        var Axis = H.Axis,
-            noop = H.noop,
-            Series = H.Series,
-            seriesTypes = H.seriesTypes;
-        /**
-         * A bubble series is a three dimensional series type where each point renders
-         * an X, Y and Z value. Each points is drawn as a bubble where the position
-         * along the X and Y axes mark the X and Y values, and the size of the bubble
-         * relates to the Z value.
-         *
-         * @sample {highcharts} highcharts/demo/bubble/
-         *         Bubble chart
-         *
-         * @extends      plotOptions.scatter
-         * @excluding    cluster
-         * @product      highcharts highstock
-         * @requires     highcharts-more
-         * @optionparent plotOptions.bubble
-         */
-        seriesType('bubble', 'scatter', {
-            dataLabels: {
-                formatter: function () {
-                    return this.point.z;
-                },
-                inside: true,
-                verticalAlign: 'middle'
-            },
-            /**
-             * If there are more points in the series than the `animationLimit`, the
-             * animation won't run. Animation affects overall performance and doesn't
-             * work well with heavy data series.
-             *
-             * @since 6.1.0
-             */
-            animationLimit: 250,
-            /**
-             * Whether to display negative sized bubbles. The threshold is given
-             * by the [zThreshold](#plotOptions.bubble.zThreshold) option, and negative
-             * bubbles can be visualized by setting
-             * [negativeColor](#plotOptions.bubble.negativeColor).
-             *
-             * @sample {highcharts} highcharts/plotoptions/bubble-negative/
-             *         Negative bubbles
-             *
-             * @type      {boolean}
-             * @default   true
-             * @since     3.0
-             * @apioption plotOptions.bubble.displayNegative
-             */
-            /**
-             * @extends   plotOptions.series.marker
-             * @excluding enabled, enabledThreshold, height, radius, width
-             */
-            marker: {
-                lineColor: null,
-                lineWidth: 1,
-                /**
-                 * The fill opacity of the bubble markers.
-                 */
-                fillOpacity: 0.5,
-                /**
-                 * In bubble charts, the radius is overridden and determined based on
-                 * the point's data value.
-                 *
-                 * @ignore-option
-                 */
-                radius: null,
-                states: {
-                    hover: {
-                        radiusPlus: 0
-                    }
-                },
-                /**
-                 * A predefined shape or symbol for the marker. Possible values are
-                 * "circle", "square", "diamond", "triangle" and "triangle-down".
-                 *
-                 * Additionally, the URL to a graphic can be given on the form
-                 * `url(graphic.png)`. Note that for the image to be applied to exported
-                 * charts, its URL needs to be accessible by the export server.
-                 *
-                 * Custom callbacks for symbol path generation can also be added to
-                 * `Highcharts.SVGRenderer.prototype.symbols`. The callback is then
-                 * used by its method name, as shown in the demo.
-                 *
-                 * @sample     {highcharts} highcharts/plotoptions/bubble-symbol/
-                 *             Bubble chart with various symbols
-                 * @sample     {highcharts} highcharts/plotoptions/series-marker-symbol/
-                 *             General chart with predefined, graphic and custom markers
-                 *
-                 * @type  {Highcharts.SymbolKeyValue|string}
-                 * @since 5.0.11
-                 */
-                symbol: 'circle'
-            },
-            /**
-             * Minimum bubble size. Bubbles will automatically size between the
-             * `minSize` and `maxSize` to reflect the `z` value of each bubble.
-             * Can be either pixels (when no unit is given), or a percentage of
-             * the smallest one of the plot width and height.
-             *
-             * @sample {highcharts} highcharts/plotoptions/bubble-size/
-             *         Bubble size
-             *
-             * @type    {number|string}
-             * @since   3.0
-             * @product highcharts highstock
-             */
-            minSize: 8,
-            /**
-             * Maximum bubble size. Bubbles will automatically size between the
-             * `minSize` and `maxSize` to reflect the `z` value of each bubble.
-             * Can be either pixels (when no unit is given), or a percentage of
-             * the smallest one of the plot width and height.
-             *
-             * @sample {highcharts} highcharts/plotoptions/bubble-size/
-             *         Bubble size
-             *
-             * @type    {number|string}
-             * @since   3.0
-             * @product highcharts highstock
-             */
-            maxSize: '20%',
-            /**
-             * When a point's Z value is below the
-             * [zThreshold](#plotOptions.bubble.zThreshold) setting, this color is used.
-             *
-             * @sample {highcharts} highcharts/plotoptions/bubble-negative/
-             *         Negative bubbles
-             *
-             * @type      {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
-             * @since     3.0
-             * @product   highcharts
-             * @apioption plotOptions.bubble.negativeColor
-             */
-            /**
-             * Whether the bubble's value should be represented by the area or the
-             * width of the bubble. The default, `area`, corresponds best to the
-             * human perception of the size of each bubble.
-             *
-             * @sample {highcharts} highcharts/plotoptions/bubble-sizeby/
-             *         Comparison of area and size
-             *
-             * @type       {Highcharts.BubbleSizeByValue}
-             * @default    area
-             * @since      3.0.7
-             * @apioption  plotOptions.bubble.sizeBy
-             */
-            /**
-             * When this is true, the absolute value of z determines the size of
-             * the bubble. This means that with the default `zThreshold` of 0, a
-             * bubble of value -1 will have the same size as a bubble of value 1,
-             * while a bubble of value 0 will have a smaller size according to
-             * `minSize`.
-             *
-             * @sample    {highcharts} highcharts/plotoptions/bubble-sizebyabsolutevalue/
-             *            Size by absolute value, various thresholds
-             *
-             * @type      {boolean}
-             * @default   false
-             * @since     4.1.9
-             * @product   highcharts
-             * @apioption plotOptions.bubble.sizeByAbsoluteValue
-             */
-            /**
-             * When this is true, the series will not cause the Y axis to cross
-             * the zero plane (or [threshold](#plotOptions.series.threshold) option)
-             * unless the data actually crosses the plane.
-             *
-             * For example, if `softThreshold` is `false`, a series of 0, 1, 2,
-             * 3 will make the Y axis show negative values according to the `minPadding`
-             * option. If `softThreshold` is `true`, the Y axis starts at 0.
-             *
-             * @since   4.1.9
-             * @product highcharts
-             */
-            softThreshold: false,
-            states: {
-                hover: {
-                    halo: {
-                        size: 5
-                    }
-                }
-            },
-            tooltip: {
-                pointFormat: '({point.x}, {point.y}), Size: {point.z}'
-            },
-            turboThreshold: 0,
-            /**
-             * The minimum for the Z value range. Defaults to the highest Z value
-             * in the data.
-             *
-             * @see [zMin](#plotOptions.bubble.zMin)
-             *
-             * @sample {highcharts} highcharts/plotoptions/bubble-zmin-zmax/
-             *         Z has a possible range of 0-100
-             *
-             * @type      {number}
-             * @since     4.0.3
-             * @product   highcharts
-             * @apioption plotOptions.bubble.zMax
-             */
-            /**
-             * @default   z
-             * @apioption plotOptions.bubble.colorKey
-             */
-            /**
-             * The minimum for the Z value range. Defaults to the lowest Z value
-             * in the data.
-             *
-             * @see [zMax](#plotOptions.bubble.zMax)
-             *
-             * @sample {highcharts} highcharts/plotoptions/bubble-zmin-zmax/
-             *         Z has a possible range of 0-100
-             *
-             * @type      {number}
-             * @since     4.0.3
-             * @product   highcharts
-             * @apioption plotOptions.bubble.zMin
-             */
-            /**
-             * When [displayNegative](#plotOptions.bubble.displayNegative) is `false`,
-             * bubbles with lower Z values are skipped. When `displayNegative`
-             * is `true` and a [negativeColor](#plotOptions.bubble.negativeColor)
-             * is given, points with lower Z is colored.
-             *
-             * @sample {highcharts} highcharts/plotoptions/bubble-negative/
-             *         Negative bubbles
-             *
-             * @since   3.0
-             * @product highcharts
-             */
-            zThreshold: 0,
-            zoneAxis: 'z'
-            // Prototype members
-        }, {
-            pointArrayMap: ['y', 'z'],
-            parallelArrays: ['x', 'y', 'z'],
-            trackerGroups: ['group', 'dataLabelsGroup'],
-            specialGroup: 'group',
-            bubblePadding: true,
-            zoneAxis: 'z',
-            directTouch: true,
-            isBubble: true,
-            /* eslint-disable valid-jsdoc */
-            /**
-             * @private
-             */
-            pointAttribs: function (point, state) {
-                var markerOptions = this.options.marker,
-                    fillOpacity = markerOptions.fillOpacity,
-                    attr = Series.prototype.pointAttribs.call(this,
-                    point,
-                    state);
-                if (fillOpacity !== 1) {
-                    attr.fill = color(attr.fill)
-                        .setOpacity(fillOpacity)
-                        .get('rgba');
-                }
-                return attr;
-            },
-            /**
-             * Get the radius for each point based on the minSize, maxSize and each
-             * point's Z value. This must be done prior to Series.translate because
-             * the axis needs to add padding in accordance with the point sizes.
-             * @private
-             */
-            getRadii: function (zMin, zMax, series) {
-                var len,
-                    i,
-                    zData = this.zData,
-                    yData = this.yData,
-                    minSize = series.minPxSize,
-                    maxSize = series.maxPxSize,
-                    radii = [],
-                    value;
-                // Set the shape type and arguments to be picked up in drawPoints
-                for (i = 0, len = zData.length; i < len; i++) {
-                    value = zData[i];
-                    // Separate method to get individual radius for bubbleLegend
-                    radii.push(this.getRadius(zMin, zMax, minSize, maxSize, value, yData[i]));
-                }
-                this.radii = radii;
-            },
-            /**
-             * Get the individual radius for one point.
-             * @private
-             */
-            getRadius: function (zMin, zMax, minSize, maxSize, value, yValue) {
-                var options = this.options,
-                    sizeByArea = options.sizeBy !== 'width',
-                    zThreshold = options.zThreshold,
-                    zRange = zMax - zMin,
-                    pos = 0.5;
-                // #8608 - bubble should be visible when z is undefined
-                if (yValue === null || value === null) {
-                    return null;
-                }
-                if (isNumber(value)) {
-                    // When sizing by threshold, the absolute value of z determines
-                    // the size of the bubble.
-                    if (options.sizeByAbsoluteValue) {
-                        value = Math.abs(value - zThreshold);
-                        zMax = zRange = Math.max(zMax - zThreshold, Math.abs(zMin - zThreshold));
-                        zMin = 0;
-                    }
-                    // Issue #4419 - if value is less than zMin, push a radius that's
-                    // always smaller than the minimum size
-                    if (value < zMin) {
-                        return minSize / 2 - 1;
-                    }
-                    // Relative size, a number between 0 and 1
-                    if (zRange > 0) {
-                        pos = (value - zMin) / zRange;
-                    }
-                }
-                if (sizeByArea && pos >= 0) {
-                    pos = Math.sqrt(pos);
-                }
-                return Math.ceil(minSize + pos * (maxSize - minSize)) / 2;
-            },
-            /**
-             * Perform animation on the bubbles
-             * @private
-             */
-            animate: function (init) {
-                if (!init &&
-                    this.points.length < this.options.animationLimit // #8099
-                ) {
-                    this.points.forEach(function (point) {
-                        var graphic = point.graphic;
-                        if (graphic && graphic.width) { // URL symbols don't have width
-                            // Start values
-                            if (!this.hasRendered) {
-                                graphic.attr({
-                                    x: point.plotX,
-                                    y: point.plotY,
-                                    width: 1,
-                                    height: 1
-                                });
-                            }
-                            // Run animation
-                            graphic.animate(this.markerAttribs(point), this.options.animation);
-                        }
-                    }, this);
-                }
-            },
-            /**
-             * Define hasData function for non-cartesian series.
-             * Returns true if the series has points at all.
-             * @private
-             */
-            hasData: function () {
-                return !!this.processedXData.length; // != 0
-            },
-            /**
-             * Extend the base translate method to handle bubble size
-             * @private
-             */
-            translate: function () {
-                var i,
-                    data = this.data,
-                    point,
-                    radius,
-                    radii = this.radii;
-                // Run the parent method
-                seriesTypes.scatter.prototype.translate.call(this);
-                // Set the shape type and arguments to be picked up in drawPoints
-                i = data.length;
-                while (i--) {
-                    point = data[i];
-                    radius = radii ? radii[i] : 0; // #1737
-                    if (isNumber(radius) && radius >= this.minPxSize / 2) {
-                        // Shape arguments
-                        point.marker = extend(point.marker, {
-                            radius: radius,
-                            width: 2 * radius,
-                            height: 2 * radius
-                        });
-                        // Alignment box for the data label
-                        point.dlBox = {
-                            x: point.plotX - radius,
-                            y: point.plotY - radius,
-                            width: 2 * radius,
-                            height: 2 * radius
-                        };
-                    }
-                    else { // below zThreshold
-                        // #1691
-                        point.shapeArgs = point.plotY = point.dlBox = void 0;
-                    }
-                }
-            },
-            alignDataLabel: seriesTypes.column.prototype.alignDataLabel,
-            buildKDTree: noop,
-            applyZones: noop
-            // Point class
-        }, {
-            /**
-             * @private
-             */
-            haloPath: function (size) {
-                return Point.prototype.haloPath.call(this, 
-                // #6067
-                size === 0 ? 0 : (this.marker ? this.marker.radius || 0 : 0) + size);
-            },
-            ttBelow: false
-        });
-        // Add logic to pad each axis with the amount of pixels necessary to avoid the
-        // bubbles to overflow.
-        Axis.prototype.beforePadding = function () {
-            var axis = this,
-                axisLength = this.len,
-                chart = this.chart,
-                pxMin = 0,
-                pxMax = axisLength,
-                isXAxis = this.isXAxis,
-                dataKey = isXAxis ? 'xData' : 'yData',
-                min = this.min,
-                extremes = {},
-                smallestSize = Math.min(chart.plotWidth,
-                chart.plotHeight),
-                zMin = Number.MAX_VALUE,
-                zMax = -Number.MAX_VALUE,
-                range = this.max - min,
-                transA = axisLength / range,
-                activeSeries = [];
-            // Handle padding on the second pass, or on redraw
-            this.series.forEach(function (series) {
-                var seriesOptions = series.options,
-                    zData;
-                if (series.bubblePadding &&
-                    (series.visible || !chart.options.chart.ignoreHiddenSeries)) {
-                    // Correction for #1673
-                    axis.allowZoomOutside = true;
-                    // Cache it
-                    activeSeries.push(series);
-                    if (isXAxis) { // because X axis is evaluated first
-                        // For each series, translate the size extremes to pixel values
-                        ['minSize', 'maxSize'].forEach(function (prop) {
-                            var length = seriesOptions[prop],
-                                isPercent = /%$/.test(length);
-                            length = pInt(length);
-                            extremes[prop] = isPercent ?
-                                smallestSize * length / 100 :
-                                length;
-                        });
-                        series.minPxSize = extremes.minSize;
-                        // Prioritize min size if conflict to make sure bubbles are
-                        // always visible. #5873
-                        series.maxPxSize = Math.max(extremes.maxSize, extremes.minSize);
-                        // Find the min and max Z
-                        zData = series.zData.filter(isNumber);
-                        if (zData.length) { // #1735
-                            zMin = pick(seriesOptions.zMin, clamp(arrayMin(zData), seriesOptions.displayNegative === false ?
-                                seriesOptions.zThreshold :
-                                -Number.MAX_VALUE, zMin));
-                            zMax = pick(seriesOptions.zMax, Math.max(zMax, arrayMax(zData)));
-                        }
-                    }
-                }
-            });
-            activeSeries.forEach(function (series) {
-                var data = series[dataKey],
-                    i = data.length,
-                    radius;
-                if (isXAxis) {
-                    series.getRadii(zMin, zMax, series);
-                }
-                if (range > 0) {
-                    while (i--) {
-                        if (isNumber(data[i]) &&
-                            axis.dataMin <= data[i] &&
-                            data[i] <= axis.max) {
-                            radius = series.radii ? series.radii[i] : 0;
-                            pxMin = Math.min(((data[i] - min) * transA) - radius, pxMin);
-                            pxMax = Math.max(((data[i] - min) * transA) + radius, pxMax);
-                        }
-                    }
-                }
-            });
-            // Apply the padding to the min and max properties
-            if (activeSeries.length && range > 0 && !this.logarithmic) {
-                pxMax -= axisLength;
-                transA *= (axisLength +
-                    Math.max(0, pxMin) - // #8901
-                    Math.min(pxMax, axisLength)) / axisLength;
-                [
-                    ['min', 'userMin', pxMin],
-                    ['max', 'userMax', pxMax]
-                ].forEach(function (keys) {
-                    if (typeof pick(axis.options[keys[0]], axis[keys[1]]) === 'undefined') {
-                        axis[keys[0]] += keys[2] / transA;
-                    }
-                });
-            }
-            /* eslint-enable valid-jsdoc */
-        };
-        /**
-         * A `bubble` series. If the [type](#series.bubble.type) option is
-         * not specified, it is inherited from [chart.type](#chart.type).
-         *
-         * @extends   series,plotOptions.bubble
-         * @excluding dataParser, dataURL, stack
-         * @product   highcharts highstock
-         * @requires  highcharts-more
-         * @apioption series.bubble
-         */
-        /**
-         * An array of data points for the series. For the `bubble` series type,
-         * points can be given in the following ways:
-         *
-         * 1. An array of arrays with 3 or 2 values. In this case, the values correspond
-         *    to `x,y,z`. If the first value is a string, it is applied as the name of
-         *    the point, and the `x` value is inferred. The `x` value can also be
-         *    omitted, in which case the inner arrays should be of length 2\. Then the
-         *    `x` value is automatically calculated, either starting at 0 and
-         *    incremented by 1, or from `pointStart` and `pointInterval` given in the
-         *    series options.
-         *    ```js
-         *    data: [
-         *        [0, 1, 2],
-         *        [1, 5, 5],
-         *        [2, 0, 2]
-         *    ]
-         *    ```
-         *
-         * 2. An array of objects with named values. The following snippet shows only a
-         *    few settings, see the complete options set below. If the total number of
-         *    data points exceeds the series'
-         *    [turboThreshold](#series.bubble.turboThreshold), this option is not
-         *    available.
-         *    ```js
-         *    data: [{
-         *        x: 1,
-         *        y: 1,
-         *        z: 1,
-         *        name: "Point2",
-         *        color: "#00FF00"
-         *    }, {
-         *        x: 1,
-         *        y: 5,
-         *        z: 4,
-         *        name: "Point1",
-         *        color: "#FF00FF"
-         *    }]
-         *    ```
-         *
-         * @sample {highcharts} highcharts/series/data-array-of-arrays/
-         *         Arrays of numeric x and y
-         * @sample {highcharts} highcharts/series/data-array-of-arrays-datetime/
-         *         Arrays of datetime x and y
-         * @sample {highcharts} highcharts/series/data-array-of-name-value/
-         *         Arrays of point.name and y
-         * @sample {highcharts} highcharts/series/data-array-of-objects/
-         *         Config objects
-         *
-         * @type      {Array<Array<(number|string),number>|Array<(number|string),number,number>|*>}
-         * @extends   series.line.data
-         * @product   highcharts
-         * @apioption series.bubble.data
-         */
-        /**
-         * @extends     series.line.data.marker
-         * @excluding   enabledThreshold, height, radius, width
-         * @product     highcharts
-         * @apioption   series.bubble.data.marker
-         */
-        /**
-         * The size value for each bubble. The bubbles' diameters are computed
-         * based on the `z`, and controlled by series options like `minSize`,
-         * `maxSize`, `sizeBy`, `zMin` and `zMax`.
-         *
-         * @type      {number|null}
-         * @product   highcharts
-         * @apioption series.bubble.data.z
-         */
-        /**
-         * @excluding enabled, enabledThreshold, height, radius, width
-         * @apioption series.bubble.marker
-         */
-        ''; // adds doclets above to transpiled file
-
-    });
-    _registerModule(_modules, 'Series/MapBubbleSeries.js', [_modules['Core/Globals.js'], _modules['Core/Series/Point.js'], _modules['Core/Utilities.js']], function (H, Point, U) {
-        /* *
-         *
-         *  (c) 2010-2020 Torstein Honsi
-         *
-         *  License: www.highcharts.com/license
-         *
-         *  !!!!!!! SOURCE GETS TRANSPILED BY TYPESCRIPT. EDIT TS FILE ONLY. !!!!!!!
-         *
-         * */
-        var merge = U.merge,
-            seriesType = U.seriesType;
-        var seriesTypes = H.seriesTypes;
+        var merge = U.merge;
+        var seriesTypes = BaseSeries.seriesTypes;
         // The mapbubble series type
         if (seriesTypes.bubble) {
             /**
@@ -5066,7 +3878,7 @@
              *
              * @augments Highcharts.Series
              */
-            seriesType('mapbubble', 'bubble'
+            BaseSeries.seriesType('mapbubble', 'bubble'
             /**
              * A map bubble series is a bubble series laid out on top of a map
              * series, where each bubble is tied to a specific map area.
@@ -5286,7 +4098,7 @@
         ''; // adds doclets above to transpiled file
 
     });
-    _registerModule(_modules, 'Series/HeatmapSeries.js', [_modules['Core/Globals.js'], _modules['Mixins/LegendSymbol.js'], _modules['Core/Renderer/SVG/SVGRenderer.js'], _modules['Core/Utilities.js']], function (H, LegendSymbolMixin, SVGRenderer, U) {
+    _registerModule(_modules, 'Series/HeatmapSeries.js', [_modules['Core/Series/Series.js'], _modules['Mixins/ColorMapSeries.js'], _modules['Core/Globals.js'], _modules['Mixins/LegendSymbol.js'], _modules['Core/Renderer/SVG/SVGRenderer.js'], _modules['Core/Utilities.js']], function (BaseSeries, ColorMapMixin, H, LegendSymbolMixin, SVGRenderer, U) {
         /* *
          *
          *  (c) 2010-2020 Torstein Honsi
@@ -5296,13 +4108,18 @@
          *  !!!!!!! SOURCE GETS TRANSPILED BY TYPESCRIPT. EDIT TS FILE ONLY. !!!!!!!
          *
          * */
+        var colorMapPointMixin = ColorMapMixin.colorMapPointMixin,
+            colorMapSeriesMixin = ColorMapMixin.colorMapSeriesMixin;
+        var noop = H.noop;
         var clamp = U.clamp,
             extend = U.extend,
             fireEvent = U.fireEvent,
             isNumber = U.isNumber,
             merge = U.merge,
-            pick = U.pick,
-            seriesType = U.seriesType;
+            pick = U.pick;
+        var Series = H.Series,
+            seriesTypes = BaseSeries.seriesTypes,
+            symbols = SVGRenderer.prototype.symbols;
         /* *
          * @interface Highcharts.PointOptionsObject in parts/Point.ts
          */ /**
@@ -5316,12 +4133,6 @@
         * @type {number|null|undefined}
         */
         ''; // detach doclets above
-        var colorMapPointMixin = H.colorMapPointMixin,
-            colorMapSeriesMixin = H.colorMapSeriesMixin,
-            noop = H.noop,
-            Series = H.Series,
-            seriesTypes = H.seriesTypes,
-            symbols = SVGRenderer.prototype.symbols;
         /**
          * @private
          * @class
@@ -5329,7 +4140,7 @@
          *
          * @augments Highcharts.Series
          */
-        seriesType('heatmap', 'scatter', 
+        BaseSeries.seriesType('heatmap', 'scatter', 
         /**
          * A heatmap is a graphical representation of data where the individual
          * values contained in a matrix are represented as colors.
@@ -6790,425 +5601,6 @@
                 });
             }
         });
-
-    });
-    _registerModule(_modules, 'Maps/Map.js', [_modules['Core/Chart/Chart.js'], _modules['Core/Globals.js'], _modules['Core/Options.js'], _modules['Core/Renderer/SVG/SVGRenderer.js'], _modules['Core/Utilities.js']], function (Chart, H, O, SVGRenderer, U) {
-        /* *
-         *
-         *  (c) 2010-2020 Torstein Honsi
-         *
-         *  License: www.highcharts.com/license
-         *
-         *  !!!!!!! SOURCE GETS TRANSPILED BY TYPESCRIPT. EDIT TS FILE ONLY. !!!!!!!
-         *
-         * */
-        var defaultOptions = O.defaultOptions;
-        var extend = U.extend,
-            getOptions = U.getOptions,
-            merge = U.merge,
-            pick = U.pick;
-        var Renderer = H.Renderer,
-            VMLRenderer = H.VMLRenderer;
-        // Add language
-        extend(defaultOptions.lang, {
-            zoomIn: 'Zoom in',
-            zoomOut: 'Zoom out'
-        });
-        // Set the default map navigation options
-        /**
-         * @product      highmaps
-         * @optionparent mapNavigation
-         */
-        defaultOptions.mapNavigation = {
-            /**
-             * General options for the map navigation buttons. Individual options
-             * can be given from the [mapNavigation.buttons](#mapNavigation.buttons)
-             * option set.
-             *
-             * @sample {highmaps} maps/mapnavigation/button-theme/
-             *         Theming the navigation buttons
-             */
-            buttonOptions: {
-                /**
-                 * What box to align the buttons to. Possible values are `plotBox`
-                 * and `spacingBox`.
-                 *
-                 * @type {Highcharts.ButtonRelativeToValue}
-                 */
-                alignTo: 'plotBox',
-                /**
-                 * The alignment of the navigation buttons.
-                 *
-                 * @type {Highcharts.AlignValue}
-                 */
-                align: 'left',
-                /**
-                 * The vertical alignment of the buttons. Individual alignment can
-                 * be adjusted by each button's `y` offset.
-                 *
-                 * @type {Highcharts.VerticalAlignValue}
-                 */
-                verticalAlign: 'top',
-                /**
-                 * The X offset of the buttons relative to its `align` setting.
-                 */
-                x: 0,
-                /**
-                 * The width of the map navigation buttons.
-                 */
-                width: 18,
-                /**
-                 * The pixel height of the map navigation buttons.
-                 */
-                height: 18,
-                /**
-                 * Padding for the navigation buttons.
-                 *
-                 * @since 5.0.0
-                 */
-                padding: 5,
-                /**
-                 * Text styles for the map navigation buttons.
-                 *
-                 * @type    {Highcharts.CSSObject}
-                 * @default {"fontSize": "15px", "fontWeight": "bold"}
-                 */
-                style: {
-                    /** @ignore */
-                    fontSize: '15px',
-                    /** @ignore */
-                    fontWeight: 'bold'
-                },
-                /**
-                 * A configuration object for the button theme. The object accepts
-                 * SVG properties like `stroke-width`, `stroke` and `fill`. Tri-state
-                 * button styles are supported by the `states.hover` and `states.select`
-                 * objects.
-                 *
-                 * @sample {highmaps} maps/mapnavigation/button-theme/
-                 *         Themed navigation buttons
-                 *
-                 * @type    {Highcharts.SVGAttributes}
-                 * @default {"stroke-width": 1, "text-align": "center"}
-                 */
-                theme: {
-                    /** @ignore */
-                    'stroke-width': 1,
-                    /** @ignore */
-                    'text-align': 'center'
-                }
-            },
-            /**
-             * The individual buttons for the map navigation. This usually includes
-             * the zoom in and zoom out buttons. Properties for each button is
-             * inherited from
-             * [mapNavigation.buttonOptions](#mapNavigation.buttonOptions), while
-             * individual options can be overridden. But default, the `onclick`, `text`
-             * and `y` options are individual.
-             */
-            buttons: {
-                /**
-                 * Options for the zoom in button. Properties for the zoom in and zoom
-                 * out buttons are inherited from
-                 * [mapNavigation.buttonOptions](#mapNavigation.buttonOptions), while
-                 * individual options can be overridden. By default, the `onclick`,
-                 * `text` and `y` options are individual.
-                 *
-                 * @extends mapNavigation.buttonOptions
-                 */
-                zoomIn: {
-                    // eslint-disable-next-line valid-jsdoc
-                    /**
-                     * Click handler for the button.
-                     *
-                     * @type    {Function}
-                     * @default function () { this.mapZoom(0.5); }
-                     */
-                    onclick: function () {
-                        this.mapZoom(0.5);
-                    },
-                    /**
-                     * The text for the button. The tooltip (title) is a language option
-                     * given by [lang.zoomIn](#lang.zoomIn).
-                     */
-                    text: '+',
-                    /**
-                     * The position of the zoomIn button relative to the vertical
-                     * alignment.
-                     */
-                    y: 0
-                },
-                /**
-                 * Options for the zoom out button. Properties for the zoom in and
-                 * zoom out buttons are inherited from
-                 * [mapNavigation.buttonOptions](#mapNavigation.buttonOptions), while
-                 * individual options can be overridden. By default, the `onclick`,
-                 * `text` and `y` options are individual.
-                 *
-                 * @extends mapNavigation.buttonOptions
-                 */
-                zoomOut: {
-                    // eslint-disable-next-line valid-jsdoc
-                    /**
-                     * Click handler for the button.
-                     *
-                     * @type    {Function}
-                     * @default function () { this.mapZoom(2); }
-                     */
-                    onclick: function () {
-                        this.mapZoom(2);
-                    },
-                    /**
-                     * The text for the button. The tooltip (title) is a language option
-                     * given by [lang.zoomOut](#lang.zoomIn).
-                     */
-                    text: '-',
-                    /**
-                     * The position of the zoomOut button relative to the vertical
-                     * alignment.
-                     */
-                    y: 28
-                }
-            },
-            /**
-             * Whether to enable navigation buttons. By default it inherits the
-             * [enabled](#mapNavigation.enabled) setting.
-             *
-             * @type      {boolean}
-             * @apioption mapNavigation.enableButtons
-             */
-            /**
-             * Whether to enable map navigation. The default is not to enable
-             * navigation, as many choropleth maps are simple and don't need it.
-             * Additionally, when touch zoom and mousewheel zoom is enabled, it breaks
-             * the default behaviour of these interactions in the website, and the
-             * implementer should be aware of this.
-             *
-             * Individual interactions can be enabled separately, namely buttons,
-             * multitouch zoom, double click zoom, double click zoom to element and
-             * mousewheel zoom.
-             *
-             * @type      {boolean}
-             * @default   false
-             * @apioption mapNavigation.enabled
-             */
-            /**
-             * Enables zooming in on an area on double clicking in the map. By default
-             * it inherits the [enabled](#mapNavigation.enabled) setting.
-             *
-             * @type      {boolean}
-             * @apioption mapNavigation.enableDoubleClickZoom
-             */
-            /**
-             * Whether to zoom in on an area when that area is double clicked.
-             *
-             * @sample {highmaps} maps/mapnavigation/doubleclickzoomto/
-             *         Enable double click zoom to
-             *
-             * @type      {boolean}
-             * @default   false
-             * @apioption mapNavigation.enableDoubleClickZoomTo
-             */
-            /**
-             * Enables zooming by mouse wheel. By default it inherits the [enabled](
-             * #mapNavigation.enabled) setting.
-             *
-             * @type      {boolean}
-             * @apioption mapNavigation.enableMouseWheelZoom
-             */
-            /**
-             * Whether to enable multitouch zooming. Note that if the chart covers the
-             * viewport, this prevents the user from using multitouch and touchdrag on
-             * the web page, so you should make sure the user is not trapped inside the
-             * chart. By default it inherits the [enabled](#mapNavigation.enabled)
-             * setting.
-             *
-             * @type      {boolean}
-             * @apioption mapNavigation.enableTouchZoom
-             */
-            /**
-             * Sensitivity of mouse wheel or trackpad scrolling. 1 is no sensitivity,
-             * while with 2, one mousewheel delta will zoom in 50%.
-             *
-             * @since 4.2.4
-             */
-            mouseWheelSensitivity: 1.1
-            // enabled: false,
-            // enableButtons: null, // inherit from enabled
-            // enableTouchZoom: null, // inherit from enabled
-            // enableDoubleClickZoom: null, // inherit from enabled
-            // enableDoubleClickZoomTo: false
-            // enableMouseWheelZoom: null, // inherit from enabled
-        };
-        /* eslint-disable valid-jsdoc */
-        /**
-         * Utility for reading SVG paths directly.
-         *
-         * @requires modules/map
-         *
-         * @function Highcharts.splitPath
-         *
-         * @param {string|Array<string|number>} path
-         *
-         * @return {Highcharts.SVGPathArray}
-         */
-        H.splitPath = function (path) {
-            var arr;
-            if (typeof path === 'string') {
-                path = path
-                    // Move letters apart
-                    .replace(/([A-Za-z])/g, ' $1 ')
-                    // Trim
-                    .replace(/^\s*/, '').replace(/\s*$/, '');
-                // Split on spaces and commas. The semicolon is bogus, designed to
-                // circumvent string replacement in the pre-v7 assembler that built
-                // specific styled mode files.
-                var split = path.split(/[ ,;]+/);
-                arr = split.map(function (item) {
-                    if (!/[A-za-z]/.test(item)) {
-                        return parseFloat(item);
-                    }
-                    return item;
-                });
-            }
-            else {
-                arr = path;
-            }
-            return SVGRenderer.prototype.pathToSegments(arr);
-        };
-        /**
-         * Contains all loaded map data for Highmaps.
-         *
-         * @requires modules/map
-         *
-         * @name Highcharts.maps
-         * @type {Highcharts.Dictionary<*>}
-         */
-        H.maps = {};
-        /**
-         * Create symbols for the zoom buttons
-         * @private
-         */
-        function selectiveRoundedRect(x, y, w, h, rTopLeft, rTopRight, rBottomRight, rBottomLeft) {
-            return [
-                ['M', x + rTopLeft, y],
-                // top side
-                ['L', x + w - rTopRight, y],
-                // top right corner
-                ['C', x + w - rTopRight / 2, y, x + w, y + rTopRight / 2, x + w, y + rTopRight],
-                // right side
-                ['L', x + w, y + h - rBottomRight],
-                // bottom right corner
-                ['C', x + w, y + h - rBottomRight / 2, x + w - rBottomRight / 2, y + h, x + w - rBottomRight, y + h],
-                // bottom side
-                ['L', x + rBottomLeft, y + h],
-                // bottom left corner
-                ['C', x + rBottomLeft / 2, y + h, x, y + h - rBottomLeft / 2, x, y + h - rBottomLeft],
-                // left side
-                ['L', x, y + rTopLeft],
-                // top left corner
-                ['C', x, y + rTopLeft / 2, x + rTopLeft / 2, y, x + rTopLeft, y],
-                ['Z']
-            ];
-        }
-        SVGRenderer.prototype.symbols.topbutton = function (x, y, w, h, options) {
-            var r = (options && options.r) || 0;
-            return selectiveRoundedRect(x - 1, y - 1, w, h, r, r, 0, 0);
-        };
-        SVGRenderer.prototype.symbols.bottombutton = function (x, y, w, h, options) {
-            var r = (options && options.r) || 0;
-            return selectiveRoundedRect(x - 1, y - 1, w, h, 0, 0, r, r);
-        };
-        // The symbol callbacks are generated on the SVGRenderer object in all browsers.
-        // Even VML browsers need this in order to generate shapes in export. Now share
-        // them with the VMLRenderer.
-        if (Renderer === VMLRenderer) {
-            ['topbutton', 'bottombutton'].forEach(function (shape) {
-                VMLRenderer.prototype.symbols[shape] =
-                    SVGRenderer.prototype.symbols[shape];
-            });
-        }
-        /**
-         * The factory function for creating new map charts. Creates a new {@link
-         * Highcharts.Chart|Chart} object with different default options than the basic
-         * Chart.
-         *
-         * @requires modules/map
-         *
-         * @function Highcharts.mapChart
-         *
-         * @param {string|Highcharts.HTMLDOMElement} [renderTo]
-         *        The DOM element to render to, or its id.
-         *
-         * @param {Highcharts.Options} options
-         *        The chart options structure as described in the
-         *        [options reference](https://api.highcharts.com/highstock).
-         *
-         * @param {Highcharts.ChartCallbackFunction} [callback]
-         *        A function to execute when the chart object is finished loading and
-         *        rendering. In most cases the chart is built in one thread, but in
-         *        Internet Explorer version 8 or less the chart is sometimes
-         *        initialized before the document is ready, and in these cases the
-         *        chart object will not be finished synchronously. As a consequence,
-         *        code that relies on the newly built Chart object should always run in
-         *        the callback. Defining a
-         *        [chart.events.load](https://api.highcharts.com/highstock/chart.events.load)
-         *        handler is equivalent.
-         *
-         * @return {Highcharts.Chart}
-         *         The chart object.
-         */
-        H.Map = H.mapChart = function (a, b, c) {
-            var hasRenderToArg = typeof a === 'string' || a.nodeName,
-                options = arguments[hasRenderToArg ? 1 : 0],
-                userOptions = options,
-                hiddenAxis = {
-                    endOnTick: false,
-                    visible: false,
-                    minPadding: 0,
-                    maxPadding: 0,
-                    startOnTick: false
-                },
-                seriesOptions,
-                defaultCreditsOptions = getOptions().credits;
-            /* For visual testing
-            hiddenAxis.gridLineWidth = 1;
-            hiddenAxis.gridZIndex = 10;
-            hiddenAxis.tickPositions = undefined;
-            // */
-            // Don't merge the data
-            seriesOptions = options.series;
-            options.series = null;
-            options = merge({
-                chart: {
-                    panning: {
-                        enabled: true,
-                        type: 'xy'
-                    },
-                    type: 'map'
-                },
-                credits: {
-                    mapText: pick(defaultCreditsOptions.mapText, ' \u00a9 <a href="{geojson.copyrightUrl}">' +
-                        '{geojson.copyrightShort}</a>'),
-                    mapTextFull: pick(defaultCreditsOptions.mapTextFull, '{geojson.copyright}')
-                },
-                tooltip: {
-                    followTouchMove: false
-                },
-                xAxis: hiddenAxis,
-                yAxis: merge(hiddenAxis, { reversed: true })
-            }, options, // user's options
-            {
-                chart: {
-                    inverted: false,
-                    alignTicks: false
-                }
-            });
-            options.series = userOptions.series = seriesOptions;
-            return hasRenderToArg ?
-                new Chart(a, options, c) :
-                new Chart(options, b);
-        };
 
     });
     _registerModule(_modules, 'masters/modules/map.src.js', [], function () {

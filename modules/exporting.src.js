@@ -1,5 +1,5 @@
 /**
- * @license Highcharts JS v8.2.0 (2020-08-20)
+ * @license Highcharts JS v8.2.0 (2020-10-07)
  *
  * Exporting module
  *
@@ -1449,7 +1449,7 @@
                     }
                 });
                 // generate the chart copy
-                chartCopy = new H.Chart(options, chart.callback);
+                chartCopy = new Chart(options, chart.callback);
                 // Axis options and series options  (#2022, #3900, #5982)
                 if (chartOptions) {
                     ['xAxis', 'yAxis', 'series'].forEach(function (coll) {
@@ -2250,7 +2250,9 @@
              * @return {void}
              */
             function tearDown() {
-                dummySVG.parentNode.removeChild(dummySVG);
+                dummySVG.parentNode.remove();
+                // Remove trash from DOM that stayed after each exporting
+                iframe.remove();
             }
             recurse(this.container.querySelector('svg'));
             tearDown();

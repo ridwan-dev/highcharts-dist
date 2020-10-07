@@ -1,5 +1,5 @@
 /*
- Highcharts JS v8.2.0 (2020-08-20)
+ Highcharts JS v8.2.0 (2020-10-07)
 
  Exporting module
 

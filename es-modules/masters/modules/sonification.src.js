@@ -1,5 +1,5 @@
 /**
- * @license Highcharts JS v8.2.0 (2020-08-20)
+ * @license Highcharts JS v8.2.0 (2020-10-07)
  * @module highcharts/modules/sonification
  * @requires highcharts
  *
@@ -12,4 +12,4 @@
 
 'use strict';
 
-import '../../modules/sonification/sonification.js';
+import '../../Extensions/Sonification/Sonification.js';
